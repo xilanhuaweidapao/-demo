@@ -1,18 +1,16 @@
-// 传入了 callback的情况下还执行 .then ?
-// 为什么要这么设计 解决了什么问题 ？
-class WeidapaoStorage {
+class weidapaoStorage {
   constructor(projectName) {
     this.projectName = projectName;
     this.ready(this.projectName);
   }
 
-  ready(projectName = this.projectName) {
+  ready() {
     return new Promise((resolve, reject) => {
       if (this.db) {
         resolve(this);
       } else {
-        this.objectStoreName = "wedapao-store";
-        const request = window.indexedDB.open(projectName, 1);
+        this.objectStoreName = "weidapao-store";
+        const request = indexedDB.open(this.projectName, 1);
 
         request.onsuccess = (event) => {
           this.db = event.target.result;
@@ -37,52 +35,49 @@ class WeidapaoStorage {
     return new Promise((resolve, reject) => {
       const success = (value) => {
         if (callback && typeof callback === "function") {
-          callback(false, value);
+          callback(value);
         }
-        resolve(value);
+        resolve(this);
       };
-
       const fail = (event) => {
         if (callback && typeof callback === "function") {
-          callback(false, event);
+          callback(event);
         }
-        reject(event);
       };
-
       this.ready()
         .then(() => {
           request(success, fail);
         })
-        .catch(error);
+        .catch(fail);
     });
   }
+
   setItem(key, value, callback) {
     return this.init((success, fail) => {
       const request = this.db
         .transaction(this.objectStoreName, "readwrite")
         .objectStore(this.objectStoreName)
         .put(value, key);
-
       request.onsuccess = () => {
         success(value);
       };
       request.onerror = fail;
     }, callback);
   }
+
   getItem(key, callback) {
     return this.init((success, fail) => {
       const request = this.db
         .transaction(this.objectStoreName)
         .objectStore(this.objectStoreName)
         .get(key);
-
       request.onsuccess = () => {
-        success(request.result);
+        success(key);
       };
-
       request.onerror = fail;
     }, callback);
   }
+
   removeItem(key, callback) {
     return this.init((success, fail) => {
       const request = this.db
@@ -92,7 +87,6 @@ class WeidapaoStorage {
       request.onsuccess = () => {
         success(key);
       };
-
       request.onerror = fail;
     }, callback);
   }
