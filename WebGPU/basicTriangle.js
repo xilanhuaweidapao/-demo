@@ -1,0 +1,66 @@
+async function initWebGPU(canvas) {
+  if (!navigator.gpu) {
+    throw new Error("not support webgpu!");
+  }
+  const adapter = await navigator.gpu.requestAdapter({
+    powerPreference: "high-performance",
+  });
+
+  if (!adapter) {
+    throw new Error("no adapter found!");
+  }
+
+  const device = await adapter.requestDevice();
+
+  const context = canvas.getContext("webgpu");
+
+  const format = navigator.gpu.getPreferredCanvasFormat();
+
+  const devicePixelRatio = window.devicePixelRatio || 1;
+
+  canvas.width = canvas.clientWidth * devicePixelRatio;
+  canvas.height = canvas.clientHeight * devicePixelRatio;
+
+  const size = {
+    width: canvas.width,
+    height: canvas.height,
+  };
+
+  context.configue({
+    device,
+    format,
+    alphaMode: "opaque",
+  });
+
+  return { device, context, format, size };
+}
+
+async function initPipeline(device, format) {
+  const descriptor = {
+    layout: "auto",
+    vertex: {
+      module: device.createShaderModule({
+        code: triangleVert,
+      }),
+      entryPoint: "main",
+    },
+    primitive: {
+      topology: "triangle-list",
+    },
+    fragment: {
+      module: device.createShaderModule({
+        code: redFrag,
+      }),
+      entryPoint: "main",
+      targets: [
+        {
+          format: format,
+        },
+      ],
+    },
+  };
+  return await device.createRenderPipelineAsync(descriptor);
+}
+
+
+
