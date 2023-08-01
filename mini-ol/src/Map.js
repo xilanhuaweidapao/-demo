@@ -8,6 +8,7 @@ import Layer from './layer/Layer.js';
 import LayerGroup, {GroupEvent} from './layer/Group.js';
 import MapBrowserEvent from './MapBrowserEvent.js';
 import MapBrowserEventHandler from './MapBrowserEventHandler.js';
+import MapBrowserEventType from './MapBrowserEventType.js';
 import MapEvent from './MapEvent.js';
 import MapEventType from './MapEventType.js';
 import MapProperty from './MapProperty.js';
@@ -15,9 +16,9 @@ import ObjectEventType from './ObjectEventType.js';
 import PointerEventType from './pointer/EventType.js';
 import RenderEventType from './render/EventType.js';
 import TileQueue, {getTilePriority} from './TileQueue.js';
+import {DEVICE_PIXEL_RATIO, PASSIVE_EVENT_LISTENERS} from './has.js';
 import View from './View.js';
 import ViewHint from './ViewHint.js';
-import {DEVICE_PIXEL_RATIO} from './has.js';
 import {TRUE} from './functions.js';
 import {
   apply as applyTransform,
@@ -35,6 +36,7 @@ import {fromUserCoordinate, toUserCoordinate} from './proj.js';
 import {getUid} from './util.js';
 import {hasArea} from './size.js';
 import {listen, unlistenByKey} from './events.js';
+import CompositeMapRenderer from './renderer/Composite.js';
 
 /**
  * @param {import("./layer/Base.js").default} layer Layer.
@@ -343,6 +345,7 @@ class Map extends BaseObject {
     );
     this.addChangeListener(MapProperty.VIEW, this.handleViewChanged_);
     this.addChangeListener(MapProperty.SIZE, this.handleSizeChanged_);
+    this.addChangeListener(MapProperty.TARGET, this.handleTargetChanged_);
 
     // setProperties will trigger the rendering of the map if the map
     // is "defined" already.
@@ -374,6 +377,96 @@ class Map extends BaseObject {
    */
   handleLayerAdd_(event) {
     setLayerMapProperty(event.layer, this);
+  }
+
+  handleTargetChanged_() {
+    if (this.mapBrowserEventHandler_) {
+      for (let i = 0, ii = this.targetChangeHandlerKeys_.length; i < ii; ++i) {
+        unlistenByKey(this.targetChangeHandlerKeys_[i]);
+      }
+      this.targetChangeHandlerKeys_ = null;
+      this.viewport_.removeEventListener(
+        EventType.CONTEXTMENU,
+        this.boundHandleBrowserEvent_
+      );
+      this.viewport_.removeEventListener(
+        EventType.WHEEL,
+        this.boundHandleBrowserEvent_
+      );
+      this.mapBrowserEventHandler_.dispose();
+      this.mapBrowserEventHandler_ = null;
+      removeNode(this.viewport_);
+    }
+
+    // target may be undefined, null, a string or an Element.
+    // If it's a string we convert it to an Element before proceeding.
+    // If it's not now an Element we remove the viewport from the DOM.
+    // If it's an Element we append the viewport element to it.
+
+    const targetElement = this.getTargetElement();
+    if (!targetElement) {
+      if (this.renderer_) {
+        clearTimeout(this.postRenderTimeoutHandle_);
+        this.postRenderTimeoutHandle_ = undefined;
+        this.postRenderFunctions_.length = 0;
+        this.renderer_.dispose();
+        this.renderer_ = null;
+      }
+      if (this.animationDelayKey_) {
+        cancelAnimationFrame(this.animationDelayKey_);
+        this.animationDelayKey_ = undefined;
+      }
+    } else {
+      targetElement.appendChild(this.viewport_);
+      if (!this.renderer_) {
+        this.renderer_ = new CompositeMapRenderer(this);
+      }
+
+      this.mapBrowserEventHandler_ = new MapBrowserEventHandler(
+        this,
+        this.moveTolerance_
+      );
+      for (const key in MapBrowserEventType) {
+        this.mapBrowserEventHandler_.addEventListener(
+          MapBrowserEventType[key],
+          this.handleMapBrowserEvent.bind(this)
+        );
+      }
+      this.viewport_.addEventListener(
+        EventType.CONTEXTMENU,
+        this.boundHandleBrowserEvent_,
+        false
+      );
+      this.viewport_.addEventListener(
+        EventType.WHEEL,
+        this.boundHandleBrowserEvent_,
+        PASSIVE_EVENT_LISTENERS ? {passive: false} : false
+      );
+
+      const defaultView = this.getOwnerDocument().defaultView;
+      const keyboardEventTarget = !this.keyboardEventTarget_
+        ? targetElement
+        : this.keyboardEventTarget_;
+      this.targetChangeHandlerKeys_ = [
+        listen(
+          keyboardEventTarget,
+          EventType.KEYDOWN,
+          this.handleBrowserEvent,
+          this
+        ),
+        listen(
+          keyboardEventTarget,
+          EventType.KEYPRESS,
+          this.handleBrowserEvent,
+          this
+        ),
+        listen(defaultView, EventType.RESIZE, this.updateSize, this),
+      ];
+    }
+
+    this.updateSize();
+    // updateSize calls setSize, so no need to call this.render
+    // ourselves here.
   }
 
   /**
@@ -611,18 +704,6 @@ class Map extends BaseObject {
   }
 
   /**
-   * Get the map interactions. Modifying this collection changes the interactions
-   * associated with the map.
-   *
-   * Interactions are used for e.g. pan, zoom and rotate.
-   * @return {Collection<import("./interaction/Interaction.js").default>} Interactions.
-   * @api
-   */
-  getInteractions() {
-    return this.interactions;
-  }
-
-  /**
    * Get the layergroup associated with this map.
    * @return {LayerGroup} A layer group containing the layers in this map.
    * @observable
@@ -830,23 +911,6 @@ class Map extends BaseObject {
       }
     }
     mapBrowserEvent.frameState = this.frameState_;
-    if (this.dispatchEvent(mapBrowserEvent) !== false) {
-      const interactionsArray = this.getInteractions().getArray().slice();
-      for (let i = interactionsArray.length - 1; i >= 0; i--) {
-        const interaction = interactionsArray[i];
-        if (
-          interaction.getMap() !== this ||
-          !interaction.getActive() ||
-          !this.getTargetElement()
-        ) {
-          continue;
-        }
-        const cont = interaction.handleEvent(mapBrowserEvent);
-        if (!cont || mapBrowserEvent.propagationStopped) {
-          break;
-        }
-      }
-    }
   }
 
   /**
@@ -1049,17 +1113,6 @@ class Map extends BaseObject {
    */
   removeControl(control) {
     return this.getControls().remove(control);
-  }
-
-  /**
-   * Remove the given interaction from the map.
-   * @param {import("./interaction/Interaction.js").default} interaction Interaction to remove.
-   * @return {import("./interaction/Interaction.js").default|undefined} The removed interaction (or
-   *     undefined if the interaction was not found).
-   * @api
-   */
-  removeInteraction(interaction) {
-    return this.getInteractions().remove(interaction);
   }
 
   /**
