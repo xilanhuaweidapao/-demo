@@ -4,18 +4,12 @@
 import Collection from '../Collection.js';
 import DoubleClickZoom from './DoubleClickZoom.js';
 import DragPan from './DragPan.js';
-import DragRotate from './DragRotate.js';
 import DragZoom from './DragZoom.js';
-import KeyboardPan from './KeyboardPan.js';
-import KeyboardZoom from './KeyboardZoom.js';
 import Kinetic from '../Kinetic.js';
 import MouseWheelZoom from './MouseWheelZoom.js';
-import PinchRotate from './PinchRotate.js';
-import PinchZoom from './PinchZoom.js';
 
 /**
  * @typedef {Object} DefaultsOptions
- * @property {boolean} [altShiftDragRotate=true] Whether Alt-Shift-drag rotate is
  * desired.
  * @property {boolean} [onFocusOnly=false] Interact only when the map has the
  * focus. This affects the `MouseWheelZoom` and `DragPan` interactions and is
@@ -44,10 +38,8 @@ import PinchZoom from './PinchZoom.js';
  * before creating your {@link module:ol/Map~Map} instance. Changing the order can
  * be of interest if the event propagation needs to be stopped at a point.
  * The default set of interactions, in sequence, is:
- * * {@link module:ol/interaction/DragRotate~DragRotate}
  * * {@link module:ol/interaction/DoubleClickZoom~DoubleClickZoom}
  * * {@link module:ol/interaction/DragPan~DragPan}
- * * {@link module:ol/interaction/PinchRotate~PinchRotate}
  * * {@link module:ol/interaction/PinchZoom~PinchZoom}
  * * {@link module:ol/interaction/KeyboardPan~KeyboardPan}
  * * {@link module:ol/interaction/KeyboardZoom~KeyboardZoom}
@@ -68,14 +60,6 @@ export function defaults(options) {
 
   const kinetic = new Kinetic(-0.005, 0.05, 100);
 
-  const altShiftDragRotate =
-    options.altShiftDragRotate !== undefined
-      ? options.altShiftDragRotate
-      : true;
-  if (altShiftDragRotate) {
-    interactions.push(new DragRotate());
-  }
-
   const doubleClickZoom =
     options.doubleClickZoom !== undefined ? options.doubleClickZoom : true;
   if (doubleClickZoom) {
@@ -93,32 +77,6 @@ export function defaults(options) {
       new DragPan({
         onFocusOnly: options.onFocusOnly,
         kinetic: kinetic,
-      })
-    );
-  }
-
-  const pinchRotate =
-    options.pinchRotate !== undefined ? options.pinchRotate : true;
-  if (pinchRotate) {
-    interactions.push(new PinchRotate());
-  }
-
-  const pinchZoom = options.pinchZoom !== undefined ? options.pinchZoom : true;
-  if (pinchZoom) {
-    interactions.push(
-      new PinchZoom({
-        duration: options.zoomDuration,
-      })
-    );
-  }
-
-  const keyboard = options.keyboard !== undefined ? options.keyboard : true;
-  if (keyboard) {
-    interactions.push(new KeyboardPan());
-    interactions.push(
-      new KeyboardZoom({
-        delta: options.zoomDelta,
-        duration: options.zoomDuration,
       })
     );
   }

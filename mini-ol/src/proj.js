@@ -309,13 +309,14 @@ export function clearAllProjections() {
  * @param {string} defaultCode Default code.
  * @return {Projection} Projection.
  */
+// used
 export function createProjection(projection, defaultCode) {
   if (!projection) {
     return get(defaultCode);
   } else if (typeof projection === 'string') {
     return get(projection);
   }
-  return /** @type {Projection} */ (projection);
+  return projection;
 }
 
 /**

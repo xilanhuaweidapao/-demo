@@ -40,7 +40,6 @@ import {fromUserCoordinate, toUserCoordinate} from './proj.js';
 import {getUid} from './util.js';
 import {hasArea} from './size.js';
 import {listen, unlistenByKey} from './events.js';
-import {removeNode} from './dom.js';
 
 /**
  * State of the current frame. Only `pixelRatio`, `time` and `viewState` should
@@ -1192,7 +1191,6 @@ class Map extends BaseObject {
       );
       this.mapBrowserEventHandler_.dispose();
       this.mapBrowserEventHandler_ = null;
-      removeNode(this.viewport_);
     }
 
     // target may be undefined, null, a string or an Element.
