@@ -3,6 +3,8 @@
  */
 import BaseObject from './Object.js';
 import Collection from './Collection.js';
+import CollectionEventType from './CollectionEventType.js';
+import CompositeMapRenderer from './renderer/Composite.js';
 import EventType from './events/EventType.js';
 import Layer from './layer/Layer.js';
 import LayerGroup, {GroupEvent} from './layer/Group.js';
@@ -16,9 +18,9 @@ import ObjectEventType from './ObjectEventType.js';
 import PointerEventType from './pointer/EventType.js';
 import RenderEventType from './render/EventType.js';
 import TileQueue, {getTilePriority} from './TileQueue.js';
-import {DEVICE_PIXEL_RATIO, PASSIVE_EVENT_LISTENERS} from './has.js';
 import View from './View.js';
 import ViewHint from './ViewHint.js';
+import {DEVICE_PIXEL_RATIO, PASSIVE_EVENT_LISTENERS} from './has.js';
 import {TRUE} from './functions.js';
 import {
   apply as applyTransform,
@@ -32,11 +34,121 @@ import {
   getForViewAndSize,
   isEmpty,
 } from './extent.js';
+// import {defaults as defaultControls} from './control/defaults.js';
+import {defaults as defaultInteractions} from './interaction/defaults.js';
 import {fromUserCoordinate, toUserCoordinate} from './proj.js';
 import {getUid} from './util.js';
 import {hasArea} from './size.js';
 import {listen, unlistenByKey} from './events.js';
-import CompositeMapRenderer from './renderer/Composite.js';
+import {removeNode} from './dom.js';
+
+/**
+ * State of the current frame. Only `pixelRatio`, `time` and `viewState` should
+ * be used in applications.
+ * @typedef {Object} FrameState
+ * @property {number} pixelRatio The pixel ratio of the frame.
+ * @property {number} time The time when rendering of the frame was requested.
+ * @property {import("./View.js").State} viewState The state of the current view.
+ * @property {boolean} animate Animate.
+ * @property {import("./transform.js").Transform} coordinateToPixelTransform CoordinateToPixelTransform.
+ * @property {import("rbush").default} declutterTree DeclutterTree.
+ * @property {null|import("./extent.js").Extent} extent Extent.
+ * @property {import("./extent.js").Extent} [nextExtent] Next extent during an animation series.
+ * @property {number} index Index.
+ * @property {Array<import("./layer/Layer.js").State>} layerStatesArray LayerStatesArray.
+ * @property {number} layerIndex LayerIndex.
+ * @property {import("./transform.js").Transform} pixelToCoordinateTransform PixelToCoordinateTransform.
+ * @property {Array<PostRenderFunction>} postRenderFunctions PostRenderFunctions.
+ * @property {import("./size.js").Size} size Size.
+ * @property {TileQueue} tileQueue TileQueue.
+ * @property {!Object<string, Object<string, boolean>>} usedTiles UsedTiles.
+ * @property {Array<number>} viewHints ViewHints.
+ * @property {!Object<string, Object<string, boolean>>} wantedTiles WantedTiles.
+ * @property {string} mapId The id of the map.
+ * @property {Object<string, boolean>} renderTargets Identifiers of previously rendered elements.
+ */
+
+/**
+ * @typedef {function(Map, ?FrameState): any} PostRenderFunction
+ */
+
+/**
+ * @typedef {Object} AtPixelOptions
+ * @property {undefined|function(import("./layer/Layer.js").default<import("./source/Source").default>): boolean} [layerFilter] Layer filter
+ * function. The filter function will receive one argument, the
+ * {@link module:ol/layer/Layer~Layer layer-candidate} and it should return a boolean value.
+ * Only layers which are visible and for which this function returns `true`
+ * will be tested for features. By default, all visible layers will be tested.
+ * @property {number} [hitTolerance=0] Hit-detection tolerance in css pixels. Pixels
+ * inside the radius around the given position will be checked for features.
+ * @property {boolean} [checkWrapped=true] Check-Wrapped Will check for wrapped geometries inside the range of
+ *   +/- 1 world width. Works only if a projection is used that can be wrapped.
+ */
+
+/**
+ * @typedef {Object} MapOptionsInternal
+ * @property {Collection<import("./control/Control.js").default>} [controls] Controls.
+ * @property {Collection<import("./interaction/Interaction.js").default>} [interactions] Interactions.
+ * @property {HTMLElement|Document} keyboardEventTarget KeyboardEventTarget.
+ * @property {Collection<import("./Overlay.js").default>} overlays Overlays.
+ * @property {Object<string, *>} values Values.
+ */
+
+/**
+ * @typedef {import("./ObjectEventType").Types|'change:layergroup'|'change:size'|'change:target'|'change:view'} MapObjectEventTypes
+ */
+
+/***
+ * @template Return
+ * @typedef {import("./Observable").OnSignature<import("./Observable").EventTypes, import("./events/Event.js").default, Return> &
+ *    import("./Observable").OnSignature<MapObjectEventTypes, import("./Object").ObjectEvent, Return> &
+ *    import("./Observable").OnSignature<import("./MapBrowserEventType").Types, import("./MapBrowserEvent").default, Return> &
+ *    import("./Observable").OnSignature<import("./MapEventType").Types, import("./MapEvent").default, Return> &
+ *    import("./Observable").OnSignature<import("./render/EventType").MapRenderEventTypes, import("./render/Event").default, Return> &
+ *    import("./Observable").CombinedOnSignature<import("./Observable").EventTypes|MapObjectEventTypes|
+ *      import("./MapBrowserEventType").Types|import("./MapEventType").Types|
+ *      import("./render/EventType").MapRenderEventTypes, Return>} MapEventHandler
+ */
+
+/**
+ * Object literal with config options for the map.
+ * @typedef {Object} MapOptions
+ * @property {Collection<import("./control/Control.js").default>|Array<import("./control/Control.js").default>} [controls]
+ * Controls initially added to the map. If not specified,
+ * {@link module:ol/control/defaults.defaults} is used.
+ * @property {number} [pixelRatio=window.devicePixelRatio] The ratio between
+ * physical pixels and device-independent pixels (dips) on the device.
+ * @property {Collection<import("./interaction/Interaction.js").default>|Array<import("./interaction/Interaction.js").default>} [interactions]
+ * Interactions that are initially added to the map. If not specified,
+ * {@link module:ol/interaction/defaults.defaults} is used.
+ * @property {HTMLElement|Document|string} [keyboardEventTarget] The element to
+ * listen to keyboard events on. This determines when the `KeyboardPan` and
+ * `KeyboardZoom` interactions trigger. For example, if this option is set to
+ * `document` the keyboard interactions will always trigger. If this option is
+ * not specified, the element the library listens to keyboard events on is the
+ * map target (i.e. the user-provided div for the map). If this is not
+ * `document`, the target element needs to be focused for key events to be
+ * emitted, requiring that the target element has a `tabindex` attribute.
+ * @property {Array<import("./layer/Base.js").default>|Collection<import("./layer/Base.js").default>|LayerGroup} [layers]
+ * Layers. If this is not defined, a map with no layers will be rendered. Note
+ * that layers are rendered in the order supplied, so if you want, for example,
+ * a vector layer to appear on top of a tile layer, it must come after the tile
+ * layer.
+ * @property {number} [maxTilesLoading=16] Maximum number tiles to load
+ * simultaneously.
+ * @property {number} [moveTolerance=1] The minimum distance in pixels the
+ * cursor must move to be detected as a map move event instead of a click.
+ * Increasing this value can make it easier to click on the map.
+ * @property {Collection<import("./Overlay.js").default>|Array<import("./Overlay.js").default>} [overlays]
+ * Overlays initially added to the map. By default, no overlays are added.
+ * @property {HTMLElement|string} [target] The container for the map, either the
+ * element itself or the `id` of the element. If not specified at construction
+ * time, {@link module:ol/Map~Map#setTarget} must be called for the map to be
+ * rendered. If passed by element, the container can be in a secondary document.
+ * @property {View|Promise<import("./View.js").ViewOptions>} [view] The map's view.  No layer sources will be
+ * fetched unless this is specified at construction time or through
+ * {@link module:ol/Map~Map#setView}.
+ */
 
 /**
  * @param {import("./layer/Base.js").default} layer Layer.
@@ -306,6 +418,16 @@ class Map extends BaseObject {
     this.targetChangeHandlerKeys_ = null;
 
     /**
+     * @type {Collection<import("./interaction/Interaction.js").default>}
+     * @protected
+     */
+    this.interactions =
+      optionsInternal.interactions ||
+      defaultInteractions({
+        onFocusOnly: true,
+      });
+
+    /**
      * @type {Collection<import("./Overlay.js").default>}
      * @private
      */
@@ -357,6 +479,83 @@ class Map extends BaseObject {
         map.setView(new View(viewOptions));
       });
     }
+
+    this.interactions.addEventListener(
+      CollectionEventType.ADD,
+      /**
+       * @param {import("./Collection.js").CollectionEvent<import("./interaction/Interaction.js").default>} event CollectionEvent.
+       */
+      (event) => {
+        event.element.setMap(this);
+      }
+    );
+
+    this.interactions.addEventListener(
+      CollectionEventType.REMOVE,
+      /**
+       * @param {import("./Collection.js").CollectionEvent<import("./interaction/Interaction.js").default>} event CollectionEvent.
+       */
+      (event) => {
+        event.element.setMap(null);
+      }
+    );
+
+    this.overlays_.addEventListener(
+      CollectionEventType.ADD,
+      /**
+       * @param {import("./Collection.js").CollectionEvent<import("./Overlay.js").default>} event CollectionEvent.
+       */
+      (event) => {
+        this.addOverlayInternal_(event.element);
+      }
+    );
+
+    this.overlays_.addEventListener(
+      CollectionEventType.REMOVE,
+      /**
+       * @param {import("./Collection.js").CollectionEvent<import("./Overlay.js").default>} event CollectionEvent.
+       */
+      (event) => {
+        const id = event.element.getId();
+        if (id !== undefined) {
+          delete this.overlayIdIndex_[id.toString()];
+        }
+        event.element.setMap(null);
+      }
+    );
+
+    this.interactions.forEach(
+      /**
+       * @param {import("./interaction/Interaction.js").default} interaction Interaction.
+       */
+      (interaction) => {
+        interaction.setMap(this);
+      }
+    );
+
+    this.overlays_.forEach(this.addOverlayInternal_.bind(this));
+  }
+
+  /**
+   * Add the given control to the map.
+   * @param {import("./control/Control.js").default} control Control.
+   * @api
+   */
+  addControl(control) {
+    this.getControls().push(control);
+  }
+
+  /**
+   * Add the given interaction to the map. If you want to add an interaction
+   * at another point of the collection use `getInteractions()` and the methods
+   * available on {@link module:ol/Collection~Collection}. This can be used to
+   * stop the event propagation from the handleEvent function. The interactions
+   * get to handle the events in the reverse order of this collection.
+   * @param {import("./interaction/Interaction.js").default} interaction Interaction to add.
+   * @api
+   */
+  addInteraction(interaction) {
+    this.getInteractions().push(interaction);
   }
 
   /**
@@ -366,6 +565,7 @@ class Map extends BaseObject {
    * @param {import("./layer/Base.js").default} layer Layer.
    * @api
    */
+  // push 会触发其它操作？
   addLayer(layer) {
     const layers = this.getLayerGroup().getLayers();
     layers.push(layer);
@@ -379,94 +579,26 @@ class Map extends BaseObject {
     setLayerMapProperty(event.layer, this);
   }
 
-  handleTargetChanged_() {
-    if (this.mapBrowserEventHandler_) {
-      for (let i = 0, ii = this.targetChangeHandlerKeys_.length; i < ii; ++i) {
-        unlistenByKey(this.targetChangeHandlerKeys_[i]);
-      }
-      this.targetChangeHandlerKeys_ = null;
-      this.viewport_.removeEventListener(
-        EventType.CONTEXTMENU,
-        this.boundHandleBrowserEvent_
-      );
-      this.viewport_.removeEventListener(
-        EventType.WHEEL,
-        this.boundHandleBrowserEvent_
-      );
-      this.mapBrowserEventHandler_.dispose();
-      this.mapBrowserEventHandler_ = null;
-      removeNode(this.viewport_);
+  /**
+   * Add the given overlay to the map.
+   * @param {import("./Overlay.js").default} overlay Overlay.
+   * @api
+   */
+  addOverlay(overlay) {
+    this.getOverlays().push(overlay);
+  }
+
+  /**
+   * This deals with map's overlay collection changes.
+   * @param {import("./Overlay.js").default} overlay Overlay.
+   * @private
+   */
+  addOverlayInternal_(overlay) {
+    const id = overlay.getId();
+    if (id !== undefined) {
+      this.overlayIdIndex_[id.toString()] = overlay;
     }
-
-    // target may be undefined, null, a string or an Element.
-    // If it's a string we convert it to an Element before proceeding.
-    // If it's not now an Element we remove the viewport from the DOM.
-    // If it's an Element we append the viewport element to it.
-
-    const targetElement = this.getTargetElement();
-    if (!targetElement) {
-      if (this.renderer_) {
-        clearTimeout(this.postRenderTimeoutHandle_);
-        this.postRenderTimeoutHandle_ = undefined;
-        this.postRenderFunctions_.length = 0;
-        this.renderer_.dispose();
-        this.renderer_ = null;
-      }
-      if (this.animationDelayKey_) {
-        cancelAnimationFrame(this.animationDelayKey_);
-        this.animationDelayKey_ = undefined;
-      }
-    } else {
-      targetElement.appendChild(this.viewport_);
-      if (!this.renderer_) {
-        this.renderer_ = new CompositeMapRenderer(this);
-      }
-
-      this.mapBrowserEventHandler_ = new MapBrowserEventHandler(
-        this,
-        this.moveTolerance_
-      );
-      for (const key in MapBrowserEventType) {
-        this.mapBrowserEventHandler_.addEventListener(
-          MapBrowserEventType[key],
-          this.handleMapBrowserEvent.bind(this)
-        );
-      }
-      this.viewport_.addEventListener(
-        EventType.CONTEXTMENU,
-        this.boundHandleBrowserEvent_,
-        false
-      );
-      this.viewport_.addEventListener(
-        EventType.WHEEL,
-        this.boundHandleBrowserEvent_,
-        PASSIVE_EVENT_LISTENERS ? {passive: false} : false
-      );
-
-      const defaultView = this.getOwnerDocument().defaultView;
-      const keyboardEventTarget = !this.keyboardEventTarget_
-        ? targetElement
-        : this.keyboardEventTarget_;
-      this.targetChangeHandlerKeys_ = [
-        listen(
-          keyboardEventTarget,
-          EventType.KEYDOWN,
-          this.handleBrowserEvent,
-          this
-        ),
-        listen(
-          keyboardEventTarget,
-          EventType.KEYPRESS,
-          this.handleBrowserEvent,
-          this
-        ),
-        listen(defaultView, EventType.RESIZE, this.updateSize, this),
-      ];
-    }
-
-    this.updateSize();
-    // updateSize calls setSize, so no need to call this.render
-    // ourselves here.
+    overlay.setMap(this);
   }
 
   /**
@@ -474,7 +606,6 @@ class Map extends BaseObject {
    * Clean up.
    */
   disposeInternal() {
-    this.controls.clear();
     this.interactions.clear();
     this.overlays_.clear();
     this.setTarget(null);
@@ -540,6 +671,26 @@ class Map extends BaseObject {
       options
     );
     return features;
+  }
+
+  /**
+   * Get all layers from all layer groups.
+   * @return {Array<import("./layer/Layer.js").default>} Layers.
+   * @api
+   */
+  getAllLayers() {
+    const layers = [];
+    function addLayersFrom(layerGroup) {
+      layerGroup.forEach(function (layer) {
+        if (layer instanceof LayerGroup) {
+          addLayersFrom(layer.getLayers());
+        } else {
+          layers.push(layer);
+        }
+      });
+    }
+    addLayersFrom(this.getLayers());
+    return layers;
   }
 
   /**
@@ -671,16 +822,6 @@ class Map extends BaseObject {
   }
 
   /**
-   * Get the map controls. Modifying this collection changes the controls
-   * associated with the map.
-   * @return {Collection<import("./control/Control.js").default>} Controls.
-   * @api
-   */
-  getControls() {
-    return this.controls;
-  }
-
-  /**
    * Get the map overlays. Modifying this collection changes the overlays
    * associated with the map.
    * @return {Collection<import("./Overlay.js").default>} Overlays.
@@ -704,6 +845,18 @@ class Map extends BaseObject {
   }
 
   /**
+   * Get the map interactions. Modifying this collection changes the interactions
+   * associated with the map.
+   *
+   * Interactions are used for e.g. pan, zoom and rotate.
+   * @return {Collection<import("./interaction/Interaction.js").default>} Interactions.
+   * @api
+   */
+  getInteractions() {
+    return this.interactions;
+  }
+
+  /**
    * Get the layergroup associated with this map.
    * @return {LayerGroup} A layer group containing the layers in this map.
    * @observable
@@ -711,6 +864,23 @@ class Map extends BaseObject {
    */
   getLayerGroup() {
     return /** @type {LayerGroup} */ (this.get(MapProperty.LAYERGROUP));
+  }
+
+  /**
+   * Clear any existing layers and add layers to the map.
+   * @param {Array<import("./layer/Base.js").default>|Collection<import("./layer/Base.js").default>} layers The layers to be added to the map.
+   * @api
+   */
+  setLayers(layers) {
+    const group = this.getLayerGroup();
+    if (layers instanceof Collection) {
+      group.setLayers(layers);
+      return;
+    }
+
+    const collection = group.getLayers();
+    collection.clear();
+    collection.extend(layers);
   }
 
   /**
@@ -911,6 +1081,23 @@ class Map extends BaseObject {
       }
     }
     mapBrowserEvent.frameState = this.frameState_;
+    if (this.dispatchEvent(mapBrowserEvent) !== false) {
+      const interactionsArray = this.getInteractions().getArray().slice();
+      for (let i = interactionsArray.length - 1; i >= 0; i--) {
+        const interaction = interactionsArray[i];
+        if (
+          interaction.getMap() !== this ||
+          !interaction.getActive() ||
+          !this.getTargetElement()
+        ) {
+          continue;
+        }
+        const cont = interaction.handleEvent(mapBrowserEvent);
+        if (!cont || mapBrowserEvent.propagationStopped) {
+          break;
+        }
+      }
+    }
   }
 
   /**
@@ -984,6 +1171,99 @@ class Map extends BaseObject {
     }
 
     this.render();
+  }
+
+  /**
+   * @private
+   */
+  handleTargetChanged_() {
+    if (this.mapBrowserEventHandler_) {
+      for (let i = 0, ii = this.targetChangeHandlerKeys_.length; i < ii; ++i) {
+        unlistenByKey(this.targetChangeHandlerKeys_[i]);
+      }
+      this.targetChangeHandlerKeys_ = null;
+      this.viewport_.removeEventListener(
+        EventType.CONTEXTMENU,
+        this.boundHandleBrowserEvent_
+      );
+      this.viewport_.removeEventListener(
+        EventType.WHEEL,
+        this.boundHandleBrowserEvent_
+      );
+      this.mapBrowserEventHandler_.dispose();
+      this.mapBrowserEventHandler_ = null;
+      removeNode(this.viewport_);
+    }
+
+    // target may be undefined, null, a string or an Element.
+    // If it's a string we convert it to an Element before proceeding.
+    // If it's not now an Element we remove the viewport from the DOM.
+    // If it's an Element we append the viewport element to it.
+
+    const targetElement = this.getTargetElement();
+    if (!targetElement) {
+      if (this.renderer_) {
+        clearTimeout(this.postRenderTimeoutHandle_);
+        this.postRenderTimeoutHandle_ = undefined;
+        this.postRenderFunctions_.length = 0;
+        this.renderer_.dispose();
+        this.renderer_ = null;
+      }
+      if (this.animationDelayKey_) {
+        cancelAnimationFrame(this.animationDelayKey_);
+        this.animationDelayKey_ = undefined;
+      }
+    } else {
+      targetElement.appendChild(this.viewport_);
+      if (!this.renderer_) {
+        this.renderer_ = new CompositeMapRenderer(this);
+      }
+
+      this.mapBrowserEventHandler_ = new MapBrowserEventHandler(
+        this,
+        this.moveTolerance_
+      );
+      for (const key in MapBrowserEventType) {
+        this.mapBrowserEventHandler_.addEventListener(
+          MapBrowserEventType[key],
+          this.handleMapBrowserEvent.bind(this)
+        );
+      }
+      this.viewport_.addEventListener(
+        EventType.CONTEXTMENU,
+        this.boundHandleBrowserEvent_,
+        false
+      );
+      this.viewport_.addEventListener(
+        EventType.WHEEL,
+        this.boundHandleBrowserEvent_,
+        PASSIVE_EVENT_LISTENERS ? {passive: false} : false
+      );
+
+      const defaultView = this.getOwnerDocument().defaultView;
+      const keyboardEventTarget = !this.keyboardEventTarget_
+        ? targetElement
+        : this.keyboardEventTarget_;
+      this.targetChangeHandlerKeys_ = [
+        listen(
+          keyboardEventTarget,
+          EventType.KEYDOWN,
+          this.handleBrowserEvent,
+          this
+        ),
+        listen(
+          keyboardEventTarget,
+          EventType.KEYPRESS,
+          this.handleBrowserEvent,
+          this
+        ),
+        listen(defaultView, EventType.RESIZE, this.updateSize, this),
+      ];
+    }
+
+    this.updateSize();
+    // updateSize calls setSize, so no need to call this.render
+    // ourselves here.
   }
 
   /**
@@ -1113,6 +1393,17 @@ class Map extends BaseObject {
    */
   removeControl(control) {
     return this.getControls().remove(control);
+  }
+
+  /**
+   * Remove the given interaction from the map.
+   * @param {import("./interaction/Interaction.js").default} interaction Interaction to remove.
+   * @return {import("./interaction/Interaction.js").default|undefined} The removed interaction (or
+   *     undefined if the interaction was not found).
+   * @api
+   */
+  removeInteraction(interaction) {
+    return this.getInteractions().remove(interaction);
   }
 
   /**
