@@ -9,22 +9,6 @@
     :root {
       color-scheme: light dark;
     }
-    #fail {
-      position: fixed;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: red;
-      color: white;
-      font-weight: bold;
-      font-family: monospace;
-      font-size: 16pt;
-      text-align: center;
-    }
     .blink {
       animation: blinker 2s step-start infinite;
     }
@@ -235,11 +219,6 @@
           }
         });
         observer.observe(canvas);
-      }
-
-      function fail(msg) {
-        // eslint-disable-next-line no-alert
-        alert(msg);
       }
 
       main();
