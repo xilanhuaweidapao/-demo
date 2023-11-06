@@ -1,4 +1,4 @@
-async function initGPU(code, drawCount, bufferList) {
+async function initGPU(code, drawCount, bufferList = []) {
   const adapter = await navigator.gpu?.requestAdapter();
   const device = await adapter?.requestDevice();
   if (!device) {
