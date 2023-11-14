@@ -4,34 +4,11 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>webgpu uniforms</title>
+    <title>webgpu uniforms 画三角形</title>
     <style>
-      :root {
-        color-scheme: light dark;
-      }
-      #fail {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        background: red;
-        color: white;
-        font-weight: bold;
-        font-family: monospace;
-        font-size: 16pt;
-        text-align: center;
-      }
-      .blink {
-        animation: blinker 2s step-start infinite;
-      }
-      @keyframes blinker {
-        50% {
-          opacity: 0;
-        }
+      canvas {
+        width: 500px;
+        height: 500px;
       }
     </style>
   </head>
@@ -42,7 +19,6 @@
         const adapter = await navigator.gpu?.requestAdapter();
         const device = await adapter?.requestDevice();
         if (!device) {
-          fail("need a browser that supports WebGPU");
           return;
         }
 
@@ -154,11 +130,6 @@
         }
 
         render();
-      }
-
-      function fail(msg) {
-        // eslint-disable-next-line no-alert
-        alert(msg);
       }
 
       main();

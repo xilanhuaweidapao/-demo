@@ -6,17 +6,6 @@
     <title>Document</title>
   </head>
   <style>
-    :root {
-      color-scheme: light dark;
-    }
-    .blink {
-      animation: blinker 2s step-start infinite;
-    }
-    @keyframes blinker {
-      50% {
-        opacity: 0;
-      }
-    }
     canvas {
       width: 500px;
       height: 500px;
@@ -101,7 +90,7 @@
     return await createImageBitmap(blob, { colorSpaceConversion: 'none' });
   }
 
-  const url = 'https://webgpufundamentals.org/webgpu/resources/images/f-texture.png'; 
+  const url = './images/f-texture.png'; 
   const source = await loadImageBitmap(url);
   const texture = device.createTexture({
     label: url,
