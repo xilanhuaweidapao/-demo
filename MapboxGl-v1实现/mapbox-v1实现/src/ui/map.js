@@ -463,11 +463,6 @@ class Map extends Camera {
         this._localIdeographFontFamily = options.localIdeographFontFamily;
         if (options.style) this.setStyle(options.style, {localIdeographFontFamily: options.localIdeographFontFamily});
 
-        if (options.attributionControl)
-            this.addControl(new AttributionControl({customAttribution: options.customAttribution}));
-
-        this.addControl(new LogoControl(), options.logoPosition);
-
         this.on('style.load', () => {
             if (this.transform.unmodified) {
                 this.jumpTo((this.style.stylesheet: any));
@@ -490,65 +485,6 @@ class Map extends Camera {
     */
     _getMapId() {
         return this._mapId;
-    }
-
-    /**
-     * Adds an {@link IControl} to the map, calling `control.onAdd(this)`.
-     *
-     * @param {IControl} control The {@link IControl} to add.
-     * @param {string} [position] position on the map to which the control will be added.
-     * Valid values are `'top-left'`, `'top-right'`, `'bottom-left'`, and `'bottom-right'`. Defaults to `'top-right'`.
-     * @returns {Map} `this`
-     * @example
-     * // Add zoom and rotation controls to the map.
-     * map.addControl(new mapboxgl.NavigationControl());
-     * @see [Display map navigation controls](https://www.mapbox.com/mapbox-gl-js/example/navigation/)
-     */
-    addControl(control: IControl, position?: ControlPosition) {
-        if (position === undefined && control.getDefaultPosition) {
-            position = control.getDefaultPosition();
-        }
-        if (position === undefined) {
-            position = 'top-right';
-        }
-        if (!control || !control.onAdd) {
-            return this.fire(new ErrorEvent(new Error(
-                'Invalid argument to map.addControl(). Argument must be a control with onAdd and onRemove methods.')));
-        }
-        const controlElement = control.onAdd(this);
-        this._controls.push(control);
-
-        const positionContainer = this._controlPositions[position];
-        if (position.indexOf('bottom') !== -1) {
-            positionContainer.insertBefore(controlElement, positionContainer.firstChild);
-        } else {
-            positionContainer.appendChild(controlElement);
-        }
-        return this;
-    }
-
-    /**
-     * Removes the control from the map.
-     *
-     * @param {IControl} control The {@link IControl} to remove.
-     * @returns {Map} `this`
-     * @example
-     * // Define a new navigation control.
-     * var navigation = new mapboxgl.NavigationControl();
-     * // Add zoom and rotation controls to the map.
-     * map.addControl(navigation);
-     * // Remove zoom and rotation controls from the map.
-     * map.removeControl(navigation);
-     */
-    removeControl(control: IControl) {
-        if (!control || !control.onRemove) {
-            return this.fire(new ErrorEvent(new Error(
-                'Invalid argument to map.removeControl(). Argument must be a control with onAdd and onRemove methods.')));
-        }
-        const ci = this._controls.indexOf(control);
-        if (ci > -1) this._controls.splice(ci, 1);
-        control.onRemove(this);
-        return this;
     }
 
     /**
@@ -2122,92 +2058,6 @@ class Map extends Camera {
         this.style.setFeatureState(feature, state);
         return this._update();
     }
-
-    // eslint-disable-next-line jsdoc/require-returns
-    /**
-     * Removes the `state` of a feature, setting it back to the default behavior.
-     * If only a `target.source` is specified, it will remove the state for all features from that source.
-     * If `target.id` is also specified, it will remove all keys for that feature's state.
-     * If `key` is also specified, it removes only that key from that feature's state.
-     * Features are identified by their `feature.id` attribute, which can be any number or string.
-     *
-     * @param {Object} target Identifier of where to remove state. It can be a source, a feature, or a specific key of feature.
-     * Feature objects returned from {@link Map#queryRenderedFeatures} or event handlers can be used as feature identifiers.
-     * @param {string | number} target.id (optional) Unique id of the feature. Optional if key is not specified.
-     * @param {string} target.source The id of the vector or GeoJSON source for the feature.
-     * @param {string} [target.sourceLayer] (optional) *For vector tile sources, `sourceLayer` is required.*
-     * @param {string} key (optional) The key in the feature state to reset.
-     *
-     * @example
-     * // Reset the entire state object for all features
-     * // in the `my-source` source
-     * map.removeFeatureState({
-     *   source: 'my-source'
-     * });
-     *
-     * @example
-     * // When the mouse leaves the `my-layer` layer,
-     * // reset the entire state object for the
-     * // feature under the mouse
-     * map.on('mouseleave', 'my-layer', function(e) {
-     *   map.removeFeatureState({
-     *     source: 'my-source',
-     *     sourceLayer: 'my-source-layer',
-     *     id: e.features[0].id
-     *   });
-     * });
-     *
-     * @example
-     * // When the mouse leaves the `my-layer` layer,
-     * // reset only the `hover` key-value pair in the
-     * // state for the feature under the mouse
-     * map.on('mouseleave', 'my-layer', function(e) {
-     *   map.removeFeatureState({
-     *     source: 'my-source',
-     *     sourceLayer: 'my-source-layer',
-     *     id: e.features[0].id
-     *   }, 'hover');
-     * });
-     *
-    */
-    removeFeatureState(target: { source: string; sourceLayer?: string; id?: string | number; }, key?: string) {
-        this.style.removeFeatureState(target, key);
-        return this._update();
-    }
-
-    /**
-     * Gets the `state` of a feature.
-     * A feature's `state` is a set of user-defined key-value pairs that are assigned to a feature at runtime.
-     * Features are identified by their `feature.id` attribute, which can be any number or string.
-     *
-     * _Note: To access the values in a feature's state object for the purposes of styling the feature, use the [`feature-state` expression](https://docs.mapbox.com/mapbox-gl-js/style-spec/expressions/#feature-state)._
-     *
-     * @param {Object} feature Feature identifier. Feature objects returned from
-     * {@link Map#queryRenderedFeatures} or event handlers can be used as feature identifiers.
-     * @param {string | number} feature.id Unique id of the feature.
-     * @param {string} feature.source The id of the vector or GeoJSON source for the feature.
-     * @param {string} [feature.sourceLayer] (optional) *For vector tile sources, `sourceLayer` is required.*
-     *
-     * @returns {Object} The state of the feature: a set of key-value pairs that was assigned to the feature at runtime.
-     *
-     * @example
-     * // When the mouse moves over the `my-layer` layer,
-     * // get the feature state for the feature under the mouse
-     * map.on('mousemove', 'my-layer', function(e) {
-     *   if (e.features.length > 0) {
-     *     map.getFeatureState({
-     *       source: 'my-source',
-     *       sourceLayer: 'my-source-layer'
-     *       id: e.features[0].id
-     *     });
-     *   }
-     * });
-     *
-     */
-    getFeatureState(feature: { source: string; sourceLayer?: string; id: string | number; }): any {
-        return this.style.getFeatureState(feature);
-    }
-
     /**
      * Returns the map's containing HTML element.
      *
@@ -2548,9 +2398,6 @@ class Map extends Camera {
     remove() {
         if (this._hash) this._hash.remove();
 
-        for (const control of this._controls) control.onRemove(this);
-        this._controls = [];
-
         if (this._frame) {
             this._frame.cancel();
             this._frame = null;
@@ -2569,7 +2416,6 @@ class Map extends Camera {
         const extension = this.painter.context.gl.getExtension('WEBGL_lose_context');
         if (extension) extension.loseContext();
         removeNode(this._canvasContainer);
-        removeNode(this._controlContainer);
         removeNode(this._missingCSSCanary);
         this._container.classList.remove('mapboxgl-map');
 
@@ -2734,93 +2580,6 @@ function removeNode(node) {
         node.parentNode.removeChild(node);
     }
 }
-
-/**
- * Interface for interactive controls added to the map. This is a
- * specification for implementers to model: it is not
- * an exported method or class.
- *
- * Controls must implement `onAdd` and `onRemove`, and must own an
- * element, which is often a `div` element. To use Mapbox GL JS's
- * default control styling, add the `mapboxgl-ctrl` class to your control's
- * node.
- *
- * @interface IControl
- * @example
- * // Control implemented as ES6 class
- * class HelloWorldControl {
- *     onAdd(map) {
- *         this._map = map;
- *         this._container = document.createElement('div');
- *         this._container.className = 'mapboxgl-ctrl';
- *         this._container.textContent = 'Hello, world';
- *         return this._container;
- *     }
- *
- *     onRemove() {
- *         this._container.parentNode.removeChild(this._container);
- *         this._map = undefined;
- *     }
- * }
- *
- * // Control implemented as ES5 prototypical class
- * function HelloWorldControl() { }
- *
- * HelloWorldControl.prototype.onAdd = function(map) {
- *     this._map = map;
- *     this._container = document.createElement('div');
- *     this._container.className = 'mapboxgl-ctrl';
- *     this._container.textContent = 'Hello, world';
- *     return this._container;
- * };
- *
- * HelloWorldControl.prototype.onRemove = function () {
- *      this._container.parentNode.removeChild(this._container);
- *      this._map = undefined;
- * };
- */
-
-/**
- * Register a control on the map and give it a chance to register event listeners
- * and resources. This method is called by {@link Map#addControl}
- * internally.
- *
- * @function
- * @memberof IControl
- * @instance
- * @name onAdd
- * @param {Map} map the Map this control will be added to
- * @returns {HTMLElement} The control's container element. This should
- * be created by the control and returned by onAdd without being attached
- * to the DOM: the map will insert the control's element into the DOM
- * as necessary.
- */
-
-/**
- * Unregister a control on the map and give it a chance to detach event listeners
- * and resources. This method is called by {@link Map#removeControl}
- * internally.
- *
- * @function
- * @memberof IControl
- * @instance
- * @name onRemove
- * @param {Map} map the Map this control will be removed from
- * @returns {undefined} there is no required return value for this method
- */
-
-/**
- * Optionally provide a default position for this control. If this method
- * is implemented and {@link Map#addControl} is called without the `position`
- * parameter, the value returned by getDefaultPosition will be used as the
- * control's position.
- *
- * @function
- * @memberof IControl
- * @instance
- * @name getDefaultPosition
- * @returns {string} a control position, one of the values valid in addControl.
- */
 
 /**
  * A [`Point` geometry](https://github.com/mapbox/point-geometry) object, which has

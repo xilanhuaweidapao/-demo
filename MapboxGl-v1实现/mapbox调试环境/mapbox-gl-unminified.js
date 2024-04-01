@@ -39600,20 +39600,6 @@ var Camera = function (Evented) {
             bearing: bearing
         };
     };
-    Camera.prototype.fitBounds = function fitBounds(bounds, options, eventData) {
-        return this._fitInternal(this.cameraForBounds(bounds, options), options, eventData);
-    };
-    Camera.prototype.fitScreenCoordinates = function fitScreenCoordinates(p0, p1, bearing, options, eventData) {
-        return this._fitInternal(this._cameraForBoxAndBearing(this.transform.pointLocation(performance.Point.convert(p0)), this.transform.pointLocation(performance.Point.convert(p1)), bearing, options), options, eventData);
-    };
-    Camera.prototype._fitInternal = function _fitInternal(calculatedOptions, options, eventData) {
-        if (!calculatedOptions) {
-            return this;
-        }
-        options = performance.extend(calculatedOptions, options);
-        delete options.padding;
-        return options.linear ? this.easeTo(options, eventData) : this.flyTo(options, eventData);
-    };
     Camera.prototype.jumpTo = function jumpTo(options, eventData) {
         this.stop();
         var tr = this.transform;
@@ -39769,119 +39755,6 @@ var Camera = function (Evented) {
             this.fire(new performance.Event('pitchend', eventData));
         }
         this.fire(new performance.Event('moveend', eventData));
-    };
-    Camera.prototype.flyTo = function flyTo(options, eventData) {
-        var this$1 = this;
-        if (!options.essential && performance.browser.prefersReducedMotion) {
-            var coercedOptions = performance.pick(options, [
-                'center',
-                'zoom',
-                'bearing',
-                'pitch',
-                'around'
-            ]);
-            return this.jumpTo(coercedOptions, eventData);
-        }
-        this.stop();
-        options = performance.extend({
-            offset: [
-                0,
-                0
-            ],
-            speed: 1.2,
-            curve: 1.42,
-            easing: performance.ease
-        }, options);
-        var tr = this.transform, startZoom = this.getZoom(), startBearing = this.getBearing(), startPitch = this.getPitch(), startPadding = this.getPadding();
-        var zoom = 'zoom' in options ? performance.clamp(+options.zoom, tr.minZoom, tr.maxZoom) : startZoom;
-        var bearing = 'bearing' in options ? this._normalizeBearing(options.bearing, startBearing) : startBearing;
-        var pitch = 'pitch' in options ? +options.pitch : startPitch;
-        var padding = 'padding' in options ? options.padding : tr.padding;
-        var scale = tr.zoomScale(zoom - startZoom);
-        var offsetAsPoint = performance.Point.convert(options.offset);
-        var pointAtOffset = tr.centerPoint.add(offsetAsPoint);
-        var locationAtOffset = tr.pointLocation(pointAtOffset);
-        var center = performance.LngLat.convert(options.center || locationAtOffset);
-        this._normalizeCenter(center);
-        var from = tr.project(locationAtOffset);
-        var delta = tr.project(center).sub(from);
-        var rho = options.curve;
-        var w0 = Math.max(tr.width, tr.height), w1 = w0 / scale, u1 = delta.mag();
-        if ('minZoom' in options) {
-            var minZoom = performance.clamp(Math.min(options.minZoom, startZoom, zoom), tr.minZoom, tr.maxZoom);
-            var wMax = w0 / tr.zoomScale(minZoom - startZoom);
-            rho = Math.sqrt(wMax / u1 * 2);
-        }
-        var rho2 = rho * rho;
-        function r(i) {
-            var b = (w1 * w1 - w0 * w0 + (i ? -1 : 1) * rho2 * rho2 * u1 * u1) / (2 * (i ? w1 : w0) * rho2 * u1);
-            return Math.log(Math.sqrt(b * b + 1) - b);
-        }
-        function sinh(n) {
-            return (Math.exp(n) - Math.exp(-n)) / 2;
-        }
-        function cosh(n) {
-            return (Math.exp(n) + Math.exp(-n)) / 2;
-        }
-        function tanh(n) {
-            return sinh(n) / cosh(n);
-        }
-        var r0 = r(0);
-        var w = function (s) {
-            return cosh(r0) / cosh(r0 + rho * s);
-        };
-        var u = function (s) {
-            return w0 * ((cosh(r0) * tanh(r0 + rho * s) - sinh(r0)) / rho2) / u1;
-        };
-        var S = (r(1) - r0) / rho;
-        if (Math.abs(u1) < 0.000001 || !isFinite(S)) {
-            if (Math.abs(w0 - w1) < 0.000001) {
-                return this.easeTo(options, eventData);
-            }
-            var k = w1 < w0 ? -1 : 1;
-            S = Math.abs(Math.log(w1 / w0)) / rho;
-            u = function () {
-                return 0;
-            };
-            w = function (s) {
-                return Math.exp(k * rho * s);
-            };
-        }
-        if ('duration' in options) {
-            options.duration = +options.duration;
-        } else {
-            var V = 'screenSpeed' in options ? +options.screenSpeed / rho : +options.speed;
-            options.duration = 1000 * S / V;
-        }
-        if (options.maxDuration && options.duration > options.maxDuration) {
-            options.duration = 0;
-        }
-        this._zooming = true;
-        this._rotating = startBearing !== bearing;
-        this._pitching = pitch !== startPitch;
-        this._padding = !tr.isPaddingEqual(padding);
-        this._prepareEase(eventData, false);
-        this._ease(function (k) {
-            var s = k * S;
-            var scale = 1 / w(s);
-            tr.zoom = k === 1 ? zoom : startZoom + tr.scaleZoom(scale);
-            if (this$1._rotating) {
-                tr.bearing = performance.number(startBearing, bearing, k);
-            }
-            if (this$1._pitching) {
-                tr.pitch = performance.number(startPitch, pitch, k);
-            }
-            if (this$1._padding) {
-                tr.interpolatePadding(startPadding, padding, k);
-                pointAtOffset = tr.centerPoint.add(offsetAsPoint);
-            }
-            var newCenter = k === 1 ? center : tr.unproject(from.add(delta.mult(u(s))).mult(scale));
-            tr.setLocationAtPoint(tr.renderWorldCopies ? newCenter.wrap() : newCenter, pointAtOffset);
-            this$1._fireMoveEvents(eventData);
-        }, function () {
-            return this$1._afterEase(eventData);
-        }, options);
-        return this;
     };
     Camera.prototype.isEasing = function isEasing() {
         return !!this._easeFrameId;
@@ -40389,37 +40262,6 @@ var Map = function (Camera) {
     };
     Map.prototype._getMapId = function _getMapId() {
         return this._mapId;
-    };
-    Map.prototype.addControl = function addControl(control, position) {
-        if (position === undefined && control.getDefaultPosition) {
-            position = control.getDefaultPosition();
-        }
-        if (position === undefined) {
-            position = 'top-right';
-        }
-        if (!control || !control.onAdd) {
-            return this.fire(new performance.ErrorEvent(new Error('Invalid argument to map.addControl(). Argument must be a control with onAdd and onRemove methods.')));
-        }
-        var controlElement = control.onAdd(this);
-        this._controls.push(control);
-        var positionContainer = this._controlPositions[position];
-        if (position.indexOf('bottom') !== -1) {
-            positionContainer.insertBefore(controlElement, positionContainer.firstChild);
-        } else {
-            positionContainer.appendChild(controlElement);
-        }
-        return this;
-    };
-    Map.prototype.removeControl = function removeControl(control) {
-        if (!control || !control.onRemove) {
-            return this.fire(new performance.ErrorEvent(new Error('Invalid argument to map.removeControl(). Argument must be a control with onAdd and onRemove methods.')));
-        }
-        var ci = this._controls.indexOf(control);
-        if (ci > -1) {
-            this._controls.splice(ci, 1);
-        }
-        control.onRemove(this);
-        return this;
     };
     Map.prototype.resize = function resize(eventData) {
         var dimensions = this._containerDimensions();
@@ -40961,13 +40803,6 @@ var Map = function (Camera) {
         this.style.setFeatureState(feature, state);
         return this._update();
     };
-    Map.prototype.removeFeatureState = function removeFeatureState(target, key) {
-        this.style.removeFeatureState(target, key);
-        return this._update();
-    };
-    Map.prototype.getFeatureState = function getFeatureState(feature) {
-        return this.style.getFeatureState(feature);
-    };
     Map.prototype.getContainer = function getContainer() {
         return this._container;
     };
@@ -41171,11 +41006,6 @@ var Map = function (Camera) {
         if (this._hash) {
             this._hash.remove();
         }
-        for (var i = 0, list = this._controls; i < list.length; i += 1) {
-            var control = list[i];
-            control.onRemove(this);
-        }
-        this._controls = [];
         if (this._frame) {
             this._frame.cancel();
             this._frame = null;
@@ -41195,7 +41025,6 @@ var Map = function (Camera) {
             extension.loseContext();
         }
         removeNode(this._canvasContainer);
-        removeNode(this._controlContainer);
         removeNode(this._missingCSSCanary);
         this._container.classList.remove('mapboxgl-map');
         this._removed = true;
