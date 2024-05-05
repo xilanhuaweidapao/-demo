@@ -4,7 +4,6 @@ import Actor from '../util/actor';
 
 import StyleLayerIndex from '../style/style_layer_index';
 import VectorTileWorkerSource from './vector_tile_worker_source';
-import RasterDEMTileWorkerSource from './raster_dem_tile_worker_source';
 import GeoJSONWorkerSource from './geojson_worker_source';
 import assert from 'assert';
 import {plugin as globalRTLTextPlugin} from './rtl_text_plugin';
@@ -13,9 +12,7 @@ import {enforceCacheSizeLimit} from '../util/tile_request_cache';
 import type {
     WorkerSource,
     WorkerTileParameters,
-    WorkerDEMTileParameters,
     WorkerTileCallback,
-    WorkerDEMTileCallback,
     TileParameters
 } from '../source/worker_source';
 
@@ -34,7 +31,6 @@ export default class Worker {
     availableImages: {[_: string]: Array<string> };
     workerSourceTypes: {[_: string]: Class<WorkerSource> };
     workerSources: {[_: string]: {[_: string]: {[_: string]: WorkerSource } } };
-    demWorkerSources: {[_: string]: {[_: string]: RasterDEMTileWorkerSource } };
     referrer: ?string;
 
     constructor(self: WorkerGlobalScopeInterface) {
@@ -51,7 +47,6 @@ export default class Worker {
 
         // [mapId][sourceType][sourceName] => worker source instance
         this.workerSources = {};
-        this.demWorkerSources = {};
 
         this.self.registerWorkerSource = (name: string, WorkerSource: Class<WorkerSource>) => {
             if (this.workerSourceTypes[name]) {
@@ -101,10 +96,6 @@ export default class Worker {
         this.getWorkerSource(mapId, params.type, params.source).loadTile(params, callback);
     }
 
-    loadDEMTile(mapId: string, params: WorkerDEMTileParameters, callback: WorkerDEMTileCallback) {
-        this.getDEMWorkerSource(mapId, params.source).loadTile(params, callback);
-    }
-
     reloadTile(mapId: string, params: WorkerTileParameters & {type: string}, callback: WorkerTileCallback) {
         assert(params.type);
         this.getWorkerSource(mapId, params.type, params.source).reloadTile(params, callback);
@@ -118,10 +109,6 @@ export default class Worker {
     removeTile(mapId: string, params: TileParameters & {type: string}, callback: WorkerTileCallback) {
         assert(params.type);
         this.getWorkerSource(mapId, params.type, params.source).removeTile(params, callback);
-    }
-
-    removeDEMTile(mapId: string, params: TileParameters) {
-        this.getDEMWorkerSource(mapId, params.source).removeTile(params);
     }
 
     removeSource(mapId: string, params: {source: string} & {type: string}, callback: WorkerTileCallback) {
@@ -214,17 +201,6 @@ export default class Worker {
         }
 
         return this.workerSources[mapId][type][source];
-    }
-
-    getDEMWorkerSource(mapId: string, source: string) {
-        if (!this.demWorkerSources[mapId])
-            this.demWorkerSources[mapId] = {};
-
-        if (!this.demWorkerSources[mapId][source]) {
-            this.demWorkerSources[mapId][source] = new RasterDEMTileWorkerSource();
-        }
-
-        return this.demWorkerSources[mapId][source];
     }
 
     enforceCacheSizeLimit(mapId: string, limit: number) {

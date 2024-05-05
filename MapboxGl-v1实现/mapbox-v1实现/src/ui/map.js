@@ -12,14 +12,11 @@ import Style from '../style/style';
 import EvaluationParameters from '../style/evaluation_parameters';
 import Painter from '../render/painter';
 import Transform from '../geo/transform';
-import Hash from './hash';
 import HandlerManager from './handler_manager';
 import Camera from './camera';
 import LngLat from '../geo/lng_lat';
 import LngLatBounds from '../geo/lng_lat_bounds';
 import Point from '@mapbox/point-geometry';
-import AttributionControl from './control/attribution_control';
-import LogoControl from './control/logo_control';
 import isSupported from '@mapbox/mapbox-gl-supported';
 import {RGBAImage} from '../util/image';
 import {Event, ErrorEvent} from '../util/evented';
@@ -73,7 +70,6 @@ type MapOptions = {
     interactive?: boolean,
     container: HTMLElement | string,
     bearingSnap?: number,
-    attributionControl?: boolean,
     customAttribution?: string | Array<string>,
     logoPosition?: ControlPosition,
     failIfMajorPerformanceCaveat?: boolean,
@@ -139,7 +135,6 @@ const defaultOptions = {
     pitchWithRotate: true,
 
     hash: false,
-    attributionControl: true,
 
     failIfMajorPerformanceCaveat: false,
     preserveDrawingBuffer: false,
@@ -295,7 +290,6 @@ class Map extends Camera {
     _failIfMajorPerformanceCaveat: boolean;
     _antialias: boolean;
     _refreshExpiredTiles: boolean;
-    _hash: Hash;
     _delegatedListeners: any;
     _fadeDuration: number;
     _crossSourceCollisions: boolean;
@@ -440,9 +434,6 @@ class Map extends Camera {
         }
 
         this.handlers = new HandlerManager(this, options);
-
-        const hashName = (typeof options.hash === 'string' && options.hash) || undefined;
-        this._hash = options.hash && (new Hash(hashName)).addTo(this);
         // don't set position from options if set through hash
         if (!this._hash || !this._hash._onHashChange()) {
             this.jumpTo({
@@ -573,6 +564,12 @@ class Map extends Camera {
      */
     isRotating(): boolean {
         return this._rotating || this.handlers.isRotating();
+    }
+
+    addLayer(layer: LayerSpecification | CustomLayerInterface, beforeId?: string) {
+        this._lazyInitEmptyStyle();
+        this.style.addLayer(layer, beforeId);
+        return this._update(true);
     }
 
     _createDelegatedListener(type: MapEvent, layerId: any, listener: any) {
@@ -1060,12 +1057,6 @@ class Map extends Camera {
 
         const dimensions = this._containerDimensions();
         this._resizeCanvas(dimensions[0], dimensions[1]);
-
-        const controlContainer = this._controlContainer = DOM.create('div', 'mapboxgl-control-container', container);
-        const positions = this._controlPositions = {};
-        ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach((positionName) => {
-            positions[positionName] = DOM.create('div', `mapboxgl-ctrl-${positionName}`, controlContainer);
-        });
     }
 
     _resizeCanvas(width: number, height: number) {

@@ -13,7 +13,6 @@ import {values} from '../util/util';
 import rasterBoundsAttributes from '../data/raster_bounds_attributes';
 import posAttributes from '../data/pos_attributes';
 import ProgramConfiguration from '../data/program_configuration';
-import CrossTileSymbolIndex from '../symbol/cross_tile_symbol_index';
 // wdp
 import * as shaders from '../shaders';
 import Program from './program';
@@ -26,30 +25,13 @@ import CullFaceMode from '../gl/cull_face_mode';
 import Texture from './texture';
 import {clippingMaskUniformValues} from './program/clipping_mask_program';
 import Color from '../style-spec/util/color';
-import symbol from './draw_symbol';
 import circle from './draw_circle';
-import heatmap from './draw_heatmap';
-import line from './draw_line';
-import fill from './draw_fill';
-import fillExtrusion from './draw_fill_extrusion';
-import hillshade from './draw_hillshade';
 import raster from './draw_raster';
-import background from './draw_background';
 import debug, {drawDebugPadding} from './draw_debug';
-import custom from './draw_custom';
 
 const draw = {
-    symbol,
     circle,
-    heatmap,
-    line,
-    fill,
-    'fill-extrusion': fillExtrusion,
-    hillshade,
-    raster,
-    background,
-    debug,
-    custom
+    raster
 };
 
 import type Transform from '../geo/transform';
@@ -120,7 +102,6 @@ class Painter {
     id: string;
     _showOverdrawInspector: boolean;
     cache: {[_: string]: Program<*> };
-    crossTileSymbolIndex: CrossTileSymbolIndex;
     symbolFadeChange: number;
     gpuTimers: {[_: string]: any };
     emptyTexture: Texture;
@@ -138,9 +119,6 @@ class Painter {
         // This is implemented using the WebGL depth buffer.
         this.numSublayers = SourceCache.maxUnderzooming + SourceCache.maxOverzooming + 1;
         this.depthEpsilon = 1 / Math.pow(2, 16);
-
-        this.crossTileSymbolIndex = new CrossTileSymbolIndex();
-
         this.gpuTimers = {};
     }
 

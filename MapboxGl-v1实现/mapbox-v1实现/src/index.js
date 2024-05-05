@@ -5,10 +5,6 @@ import supported from '@mapbox/mapbox-gl-supported';
 
 import {version} from '../package.json';
 import Map from './ui/map';
-import NavigationControl from './ui/control/navigation_control';
-import AttributionControl from './ui/control/attribution_control';
-import ScaleControl from './ui/control/scale_control';
-import FullscreenControl from './ui/control/fullscreen_control';
 import Style from './style/style';
 import LngLat from './geo/lng_lat';
 import LngLatBounds from './geo/lng_lat_bounds';
@@ -30,10 +26,6 @@ const exported = {
     setRTLTextPlugin,
     getRTLTextPluginStatus,
     Map,
-    NavigationControl,
-    AttributionControl,
-    ScaleControl,
-    FullscreenControl,
     Style,
     LngLat,
     LngLatBounds,

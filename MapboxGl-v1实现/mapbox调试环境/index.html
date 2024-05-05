@@ -27,11 +27,11 @@
   <body>
     <div id="map"></div>
     <script type="text/javascript">
-      var host = window.isLocal ? window.server : "https://iserver.supermap.io"
+      var host = window.isLocal ? window.server : "https://iserver.supermap.io";
       var baseUrl =
           host +
           "/iserver/services/map-china400/rest/maps/China/zxyTileImage.png?z={z}&x={x}&y={y}",
-        dataUrl = host + "/iserver/services/data-world/rest/data"
+        dataUrl = host + "/iserver/services/data-world/rest/data";
       var map = new mapboxgl.Map({
         container: "map",
         style: {
@@ -40,8 +40,8 @@
             "raster-tiles": {
               type: "raster",
               tiles: [baseUrl],
-              tileSize: 256
-            }
+              tileSize: 256,
+            },
           },
           layers: [
             {
@@ -49,13 +49,33 @@
               type: "raster",
               source: "raster-tiles",
               minzoom: 0,
-              maxzoom: 22
-            }
-          ]
+              maxzoom: 22,
+            },
+          ],
         },
         center: [120.143, 30.236],
-        zoom: 3
-      })
+        zoom: 3,
+      });
+
+      map.on("load", function () {
+        map.addSource("point", {
+          type: "geojson",
+          data: {
+            type: "Point",
+            coordinates: [120, 39],
+          },
+        });
+
+        map.addLayer({
+          id: "point",
+          source: "point",
+          type: "circle",
+          paint: {
+            "circle-radius": 20,
+            "circle-color": "#007cbf",
+          },
+        });
+      });
     </script>
   </body>
 </html>
