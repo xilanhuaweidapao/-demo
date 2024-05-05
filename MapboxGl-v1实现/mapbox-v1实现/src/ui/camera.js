@@ -282,6 +282,40 @@ class Camera extends Evented {
         return this.fire(new Event('moveend', eventData));
     }
 
+     /**
+     * Rotates the map so that north is up (0° bearing), with an animated transition.
+     *
+     * @memberof Map#
+     * @param options Options object
+     * @param eventData Additional properties to be added to event objects of events triggered by this method.
+     * @fires movestart
+     * @fires moveend
+     * @returns {Map} `this`
+     */
+     resetNorth(options?: AnimationOptions, eventData?: Object) {
+      this.rotateTo(0, extend({duration: 1000}, options), eventData);
+      return this;
+    }
+
+    /**
+     * Rotates and pitches the map so that north is up (0° bearing) and pitch is 0°, with an animated transition.
+     *
+     * @memberof Map#
+     * @param options Options object
+     * @param eventData Additional properties to be added to event objects of events triggered by this method.
+     * @fires movestart
+     * @fires moveend
+     * @returns {Map} `this`
+     */
+    resetNorthPitch(options?: AnimationOptions, eventData?: Object) {
+        this.easeTo(extend({
+            bearing: 0,
+            pitch: 0,
+            duration: 1000
+        }, options), eventData);
+        return this;
+    }
+
     /**
      * Changes any combination of `center`, `zoom`, `bearing`, `pitch`, and `padding` with an animated transition
      * between old and new values. The map will retain its current values for any

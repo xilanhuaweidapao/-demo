@@ -35,7 +35,7 @@ const exported = {
         const frame = raf(fn);
         return {cancel: () => cancel(frame)};
     },
-
+    // wdp
     getImageData(img: CanvasImageSource, padding?: number = 0): ImageData {
         const canvas = window.document.createElement('canvas');
         const context = canvas.getContext('2d');

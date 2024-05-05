@@ -57,6 +57,7 @@ class Program<Us: UniformBindings> {
         // remove duplicate uniforms
         const uniformList = staticUniformsInfo.concat(dynamicUniformsInfo);
         const allUniformsInfo = [];
+        // 去重
         for (const uniform of uniformList) {
             if (allUniformsInfo.indexOf(uniform) < 0) allUniformsInfo.push(uniform);
         }

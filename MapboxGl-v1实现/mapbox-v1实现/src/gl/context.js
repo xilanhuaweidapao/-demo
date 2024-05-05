@@ -203,7 +203,6 @@ class Context {
         this.bindRenderbuffer.set(rbo);
         gl.renderbufferStorage(gl.RENDERBUFFER, storageFormat, width, height);
         this.bindRenderbuffer.set(null);
-
         return rbo;
     }
 

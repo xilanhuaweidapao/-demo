@@ -326,6 +326,7 @@ export const getImage = function(requestParameters: RequestParameters, callback:
     numImageRequests++;
 
     let advanced = false;
+    // weiread 1
     const advanceImageRequestQueue = () => {
         if (advanced) return;
         advanced = true;

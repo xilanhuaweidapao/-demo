@@ -492,7 +492,7 @@ export function isSafari(scope: any): boolean {
     }
     return _isSafari;
 }
-
+// wdp 有点意思
 export function storageAvailable(type: string): boolean {
     try {
         const storage = window[type];
