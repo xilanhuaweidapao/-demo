@@ -73,6 +73,7 @@ class MessageBus implements WorkerInterface, WorkerGlobalScopeInterface {
     importScripts() {}
 }
 
+// wdp +1
 export default function WebWorker(): WorkerInterface {
     const parentListeners = [],
         workerListeners = [],

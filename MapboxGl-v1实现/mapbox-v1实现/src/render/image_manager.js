@@ -133,16 +133,12 @@ class ImageManager extends Evented {
 
     updateImage(id: string, image: StyleImage) {
         const oldImage = this.images[id];
-        assert(oldImage);
-        assert(oldImage.data.width === image.data.width);
-        assert(oldImage.data.height === image.data.height);
         image.version = oldImage.version + 1;
         this.images[id] = image;
         this.updatedImages[id] = true;
     }
 
     removeImage(id: string) {
-        assert(this.images[id]);
         const image = this.images[id];
         delete this.images[id];
         delete this.patterns[id];

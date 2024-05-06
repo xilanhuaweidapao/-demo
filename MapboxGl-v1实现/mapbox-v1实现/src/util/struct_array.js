@@ -87,6 +87,7 @@ export type SerializedStructArray = {
  *
  * @private
  */
+// wdp +1
 class StructArray {
     capacity: number;
     length: number;
@@ -113,8 +114,6 @@ class StructArray {
      * @private
      */
     static serialize(array: StructArray, transferables?: Array<Transferable>): SerializedStructArray {
-        assert(!array.isTransferred);
-
         array._trim();
 
         if (transferables) {

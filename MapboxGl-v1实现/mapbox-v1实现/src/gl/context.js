@@ -1,8 +1,7 @@
 // @flow
 import IndexBuffer from './index_buffer';
-
+// wdp +1
 import VertexBuffer from './vertex_buffer';
-import Framebuffer from './framebuffer';
 import DepthMode from './depth_mode';
 import StencilMode from './stencil_mode';
 import ColorMode from './color_mode';
@@ -194,20 +193,6 @@ class Context {
 
     createVertexBuffer(array: StructArray, attributes: $ReadOnlyArray<StructArrayMember>, dynamicDraw?: boolean) {
         return new VertexBuffer(this, array, attributes, dynamicDraw);
-    }
-
-    createRenderbuffer(storageFormat: number, width: number, height: number) {
-        const gl = this.gl;
-
-        const rbo = gl.createRenderbuffer();
-        this.bindRenderbuffer.set(rbo);
-        gl.renderbufferStorage(gl.RENDERBUFFER, storageFormat, width, height);
-        this.bindRenderbuffer.set(null);
-        return rbo;
-    }
-
-    createFramebuffer(width: number, height: number, hasDepth: boolean) {
-        return new Framebuffer(this, width, height, hasDepth);
     }
 
     clear({color, depth}: ClearArgs) {

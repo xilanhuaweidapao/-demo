@@ -13,7 +13,7 @@ import {values} from '../util/util';
 import rasterBoundsAttributes from '../data/raster_bounds_attributes';
 import posAttributes from '../data/pos_attributes';
 import ProgramConfiguration from '../data/program_configuration';
-// wdp
+// wdp +2
 import * as shaders from '../shaders';
 import Program from './program';
 import {programUniforms} from './program/program_uniforms';
@@ -103,7 +103,6 @@ class Painter {
     cache: {[_: string]: Program<*> };
     symbolFadeChange: number;
     gpuTimers: {[_: string]: any };
-    emptyTexture: Texture;
     debugOverlayTexture: Texture;
     debugOverlayCanvas: HTMLCanvasElement;
 
@@ -148,13 +147,13 @@ class Painter {
         this.tileExtentBuffer = context.createVertexBuffer(tileExtentArray, posAttributes.members);
         this.tileExtentSegments = SegmentVector.simpleSegment(0, 0, 4, 2);
 
-        const debugArray = new PosArray();
-        debugArray.emplaceBack(0, 0);
-        debugArray.emplaceBack(EXTENT, 0);
-        debugArray.emplaceBack(0, EXTENT);
-        debugArray.emplaceBack(EXTENT, EXTENT);
-        this.debugBuffer = context.createVertexBuffer(debugArray, posAttributes.members);
-        this.debugSegments = SegmentVector.simpleSegment(0, 0, 4, 5);
+        // const debugArray = new PosArray();
+        // debugArray.emplaceBack(0, 0);
+        // debugArray.emplaceBack(EXTENT, 0);
+        // debugArray.emplaceBack(0, EXTENT);
+        // debugArray.emplaceBack(EXTENT, EXTENT);
+        // this.debugBuffer = context.createVertexBuffer(debugArray, posAttributes.members);
+        // this.debugSegments = SegmentVector.simpleSegment(0, 0, 4, 5);
 
         const rasterBoundsArray = new RasterBoundsArray();
         rasterBoundsArray.emplaceBack(0, 0, 0, 0);
@@ -184,12 +183,6 @@ class Painter {
         quadTriangleIndices.emplaceBack(0, 1, 2);
         quadTriangleIndices.emplaceBack(2, 1, 3);
         this.quadTriangleIndexBuffer = context.createIndexBuffer(quadTriangleIndices);
-
-        this.emptyTexture = new Texture(context, {
-            width: 1,
-            height: 1,
-            data: new Uint8Array([0, 0, 0, 0])
-        }, context.gl.RGBA);
 
         const gl = this.context.gl;
         this.stencilClearMode = new StencilMode({func: gl.ALWAYS, mask: 0}, 0x0, 0xFF, gl.ZERO, gl.ZERO, gl.ZERO);
@@ -532,7 +525,6 @@ class Painter {
     }
 
     destroy() {
-        this.emptyTexture.destroy();
         if (this.debugOverlayTexture) {
             this.debugOverlayTexture.destroy();
         }
