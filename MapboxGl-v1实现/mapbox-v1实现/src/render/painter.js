@@ -27,7 +27,6 @@ import {clippingMaskUniformValues} from './program/clipping_mask_program';
 import Color from '../style-spec/util/color';
 import circle from './draw_circle';
 import raster from './draw_raster';
-import debug, {drawDebugPadding} from './draw_debug';
 
 const draw = {
     circle,
@@ -255,23 +254,6 @@ class Painter {
         }
     }
 
-    stencilModeFor3D(): StencilMode {
-        this.currentStencilSource = undefined;
-
-        if (this.nextStencilID + 1 > 256) {
-            this.clearStencil();
-        }
-
-        const id = this.nextStencilID++;
-        const gl = this.context.gl;
-        return new StencilMode({func: gl.NOTEQUAL, mask: 0xFF}, id, 0xFF, gl.KEEP, gl.KEEP, gl.REPLACE);
-    }
-
-    stencilModeForClipping(tileID: OverscaledTileID): StencilMode {
-        const gl = this.context.gl;
-        return new StencilMode({func: gl.EQUAL, mask: 0xFF}, this._tileClippingMaskIDs[tileID.key], 0x00, gl.KEEP, gl.KEEP, gl.REPLACE);
-    }
-
     /*
      * Sort coordinates by Z as drawing tiles is done in Z-descending order.
      * All children with the same Z write the same stencil value.  Children
@@ -451,10 +433,6 @@ class Painter {
             }
         }
 
-        if (this.options.showPadding) {
-            drawDebugPadding(this);
-        }
-
         // Set defaults for most GL values so that anyone using the state after the render
         // encounters more expected values.
         this.context.setDefault();
@@ -495,24 +473,6 @@ class Painter {
         ext.endQueryEXT(ext.TIME_ELAPSED_EXT);
     }
 
-    collectGpuTimers() {
-        const currentLayerTimers = this.gpuTimers;
-        this.gpuTimers = {};
-        return currentLayerTimers;
-    }
-
-    queryGpuTimers(gpuTimers: {[_: string]: any}) {
-        const layers = {};
-        for (const layerId in gpuTimers) {
-            const gpuTimer = gpuTimers[layerId];
-            const ext = this.context.extTimerQuery;
-            const gpuTime = ext.getQueryObjectEXT(gpuTimer.query, ext.QUERY_RESULT_EXT) / (1000 * 1000);
-            ext.deleteQueryEXT(gpuTimer.query);
-            layers[layerId] = gpuTime;
-        }
-        return layers;
-    }
-
     /**
      * Transform a matrix to incorporate the *-translate and *-translate-anchor properties into it.
      * @param inViewportPixelUnitsUnits True when the units accepted by the matrix are in viewport pixels instead of tile units.
@@ -520,61 +480,38 @@ class Painter {
      * @private
      */
     translatePosMatrix(matrix: Float32Array, tile: Tile, translate: [number, number], translateAnchor: 'map' | 'viewport', inViewportPixelUnitsUnits?: boolean) {
-        if (!translate[0] && !translate[1]) return matrix;
+      if (!translate[0] && !translate[1]) return matrix;
 
-        const angle = inViewportPixelUnitsUnits ?
-            (translateAnchor === 'map' ? this.transform.angle : 0) :
-            (translateAnchor === 'viewport' ? -this.transform.angle : 0);
+      const angle = inViewportPixelUnitsUnits ?
+          (translateAnchor === 'map' ? this.transform.angle : 0) :
+          (translateAnchor === 'viewport' ? -this.transform.angle : 0);
 
-        if (angle) {
-            const sinA = Math.sin(angle);
-            const cosA = Math.cos(angle);
-            translate = [
-                translate[0] * cosA - translate[1] * sinA,
-                translate[0] * sinA + translate[1] * cosA
-            ];
-        }
+      if (angle) {
+          const sinA = Math.sin(angle);
+          const cosA = Math.cos(angle);
+          translate = [
+              translate[0] * cosA - translate[1] * sinA,
+              translate[0] * sinA + translate[1] * cosA
+          ];
+      }
 
-        const translation = [
-            inViewportPixelUnitsUnits ? translate[0] : pixelsToTileUnits(tile, translate[0], this.transform.zoom),
-            inViewportPixelUnitsUnits ? translate[1] : pixelsToTileUnits(tile, translate[1], this.transform.zoom),
-            0
-        ];
+      const translation = [
+          inViewportPixelUnitsUnits ? translate[0] : pixelsToTileUnits(tile, translate[0], this.transform.zoom),
+          inViewportPixelUnitsUnits ? translate[1] : pixelsToTileUnits(tile, translate[1], this.transform.zoom),
+          0
+      ];
 
-        const translatedMatrix = new Float32Array(16);
-        mat4.translate(translatedMatrix, matrix, translation);
-        return translatedMatrix;
-    }
-
-    saveTileTexture(texture: Texture) {
-        const textures = this._tileTextures[texture.size[0]];
-        if (!textures) {
-            this._tileTextures[texture.size[0]] = [texture];
-        } else {
-            textures.push(texture);
-        }
-    }
+      const translatedMatrix = new Float32Array(16);
+      mat4.translate(translatedMatrix, matrix, translation);
+      return translatedMatrix;
+  }
 
     getTileTexture(size: number) {
         const textures = this._tileTextures[size];
         return textures && textures.length > 0 ? textures.pop() : null;
     }
-
-    /**
-     * Checks whether a pattern image is needed, and if it is, whether it is not loaded.
-     *
-     * @returns true if a needed image is missing and rendering needs to be skipped.
-     * @private
-     */
-    isPatternMissing(image: ?CrossFaded<ResolvedImage>): boolean {
-        if (!image) return false;
-        if (!image.from || !image.to) return true;
-        const imagePosA = this.imageManager.getPattern(image.from.toString());
-        const imagePosB = this.imageManager.getPattern(image.to.toString());
-        return !imagePosA || !imagePosB;
-    }
     
-    // wdp
+    // wdp +2
     useProgram(name: string, programConfiguration: ?ProgramConfiguration): Program<any> {
         this.cache = this.cache || {};
         const key = `${name}${programConfiguration ? programConfiguration.cacheKey : ''}${this._showOverdrawInspector ? '/overdraw' : ''}`;
@@ -585,25 +522,6 @@ class Painter {
     }
 
     /*
-     * Reset some GL state to default values to avoid hard-to-debug bugs
-     * in custom layers.
-     */
-    setCustomLayerDefaults() {
-        // Prevent custom layers from unintentionally modify the last VAO used.
-        // All other state is state is restored on it's own, but for VAOs it's
-        // simpler to unbind so that we don't have to track the state of VAOs.
-        this.context.unbindVAO();
-
-        // The default values for this state is meaningful and often expected.
-        // Leaving this state dirty could cause a lot of confusion for users.
-        this.context.cullFace.setDefault();
-        this.context.activeTexture.setDefault();
-        this.context.pixelStoreUnpack.setDefault();
-        this.context.pixelStoreUnpackPremultiplyAlpha.setDefault();
-        this.context.pixelStoreUnpackFlipY.setDefault();
-    }
-
-    /*
      * Set GL state that is shared by all layers.
      */
     setBaseState() {
@@ -611,16 +529,6 @@ class Painter {
         this.context.cullFace.set(false);
         this.context.viewport.set([0, 0, this.width, this.height]);
         this.context.blendEquation.set(gl.FUNC_ADD);
-    }
-
-    initDebugOverlayCanvas() {
-        if (this.debugOverlayCanvas == null) {
-            this.debugOverlayCanvas = window.document.createElement('canvas');
-            this.debugOverlayCanvas.width = 512;
-            this.debugOverlayCanvas.height = 512;
-            const gl = this.context.gl;
-            this.debugOverlayTexture = new Texture(this.context, this.debugOverlayCanvas, gl.RGBA);
-        }
     }
 
     destroy() {
