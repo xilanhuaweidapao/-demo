@@ -271,35 +271,6 @@ class Transform {
     }
 
     /**
-     * Return any "wrapped" copies of a given tile coordinate that are visible
-     * in the current view.
-     *
-     * @private
-     */
-    getVisibleUnwrappedCoordinates(tileID: CanonicalTileID) {
-        const result = [new UnwrappedTileID(0, tileID)];
-        if (this._renderWorldCopies) {
-            const utl = this.pointCoordinate(new Point(0, 0));
-            const utr = this.pointCoordinate(new Point(this.width, 0));
-            const ubl = this.pointCoordinate(new Point(this.width, this.height));
-            const ubr = this.pointCoordinate(new Point(0, this.height));
-            const w0 = Math.floor(Math.min(utl.x, utr.x, ubl.x, ubr.x));
-            const w1 = Math.floor(Math.max(utl.x, utr.x, ubl.x, ubr.x));
-
-            // Add an extra copy of the world on each side to properly render ImageSources and CanvasSources.
-            // Both sources draw outside the tile boundaries of the tile that "contains them" so we need
-            // to add extra copies on both sides in case offscreen tiles need to draw into on-screen ones.
-            const extraWorldCopy = 1;
-
-            for (let w = w0 - extraWorldCopy; w <= w1 + extraWorldCopy; w++) {
-                if (w === 0) continue;
-                result.push(new UnwrappedTileID(w, tileID));
-            }
-        }
-        return result;
-    }
-
-    /**
      * Return all coordinates that could cover this transform for a covering
      * zoom level.
      * @param {Object} options
@@ -602,10 +573,6 @@ class Transform {
         return cache[posMatrixKey];
     }
 
-    customLayerMatrix(): Array<number> {
-        return this.mercatorMatrix.slice();
-    }
-
     _constrain() {
         if (!this.center || !this.width || !this.height || this._constraining) return;
 
@@ -765,69 +732,6 @@ class Transform {
 
         this._posMatrixCache = {};
         this._alignedPosMatrixCache = {};
-    }
-
-    maxPitchScaleFactor() {
-        // calcMatrices hasn't run yet
-        if (!this.pixelMatrixInverse) return 1;
-
-        const coord = this.pointCoordinate(new Point(0, 0));
-        const p = [coord.x * this.worldSize, coord.y * this.worldSize, 0, 1];
-        const topPoint = vec4.transformMat4(p, p, this.pixelMatrix);
-        return topPoint[3] / this.cameraToCenterDistance;
-    }
-
-    /*
-     * The camera looks at the map from a 3D (lng, lat, altitude) location. Let's use `cameraLocation`
-     * as the name for the location under the camera and on the surface of the earth (lng, lat, 0).
-     * `cameraPoint` is the projected position of the `cameraLocation`.
-     *
-     * This point is useful to us because only fill-extrusions that are between `cameraPoint` and
-     * the query point on the surface of the earth can extend and intersect the query.
-     *
-     * When the map is not pitched the `cameraPoint` is equivalent to the center of the map because
-     * the camera is right above the center of the map.
-     */
-    getCameraPoint() {
-        const pitch = this._pitch;
-        const yOffset = Math.tan(pitch) * (this.cameraToCenterDistance || 1);
-        return this.centerPoint.add(new Point(0, yOffset));
-    }
-
-    /*
-     * When the map is pitched, some of the 3D features that intersect a query will not intersect
-     * the query at the surface of the earth. Instead the feature may be closer and only intersect
-     * the query because it extrudes into the air.
-     *
-     * This returns a geometry that includes all of the original query as well as all possible ares of the
-     * screen where the *base* of a visible extrusion could be.
-     *  - For point queries, the line from the query point to the "camera point"
-     *  - For other geometries, the envelope of the query geometry and the "camera point"
-     */
-    getCameraQueryGeometry(queryGeometry: Array<Point>): Array<Point> {
-        const c = this.getCameraPoint();
-
-        if (queryGeometry.length === 1) {
-            return [queryGeometry[0], c];
-        } else {
-            let minX = c.x;
-            let minY = c.y;
-            let maxX = c.x;
-            let maxY = c.y;
-            for (const p of queryGeometry) {
-                minX = Math.min(minX, p.x);
-                minY = Math.min(minY, p.y);
-                maxX = Math.max(maxX, p.x);
-                maxY = Math.max(maxY, p.y);
-            }
-            return [
-                new Point(minX, minY),
-                new Point(maxX, minY),
-                new Point(maxX, maxY),
-                new Point(minX, maxY),
-                new Point(minX, minY)
-            ];
-        }
     }
 }
 

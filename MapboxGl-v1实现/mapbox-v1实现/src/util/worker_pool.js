@@ -10,6 +10,7 @@ export const PRELOAD_POOL_ID = 'mapboxgl_preloaded_worker_pool';
  * Constructs a worker pool.
  * @private
  */
+// wdp +1
 export default class WorkerPool {
     static workerCount: number;
 
@@ -40,7 +41,7 @@ export default class WorkerPool {
             this.workers.forEach((w) => {
                 w.terminate();
             });
-            this.workers = (null: any);
+            this.workers = null;
         }
     }
 

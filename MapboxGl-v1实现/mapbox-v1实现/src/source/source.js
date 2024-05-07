@@ -86,7 +86,6 @@ export type SourceClass = Class<Source> & SourceStatics;
 import vector from '../source/vector_tile_source';
 import raster from '../source/raster_tile_source';
 import geojson from '../source/geojson_source';
-import image from '../source/image_source';
 
 import type {SourceSpecification} from '../style-spec/types';
 
@@ -94,7 +93,6 @@ const sourceTypes = {
     vector,
     raster,
     geojson,
-    image,
 };
 
 /*

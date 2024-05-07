@@ -3,14 +3,10 @@
 import {uniqueId, parseCacheControl} from '../util/util';
 import {deserialize as deserializeBucket} from '../data/bucket';
 import FeatureIndex from '../data/feature_index';
-import GeoJSONFeature from '../util/vectortile_to_geojson';
-import featureFilter from '../style-spec/feature_filter';
 import SymbolBucket from '../data/bucket/symbol_bucket';
 import {CollisionBoxArray} from '../data/array_types';
 import Texture from '../render/texture';
 import browser from '../util/browser';
-import EvaluationParameters from '../style/evaluation_parameters';
-import SourceFeatureState from '../source/source_state';
 import {lazyLoadRTLTextPlugin} from './rtl_text_plugin';
 
 const CLOCK_SKEW_RETRY_TIMEOUT = 30000;
@@ -26,10 +22,8 @@ import type ImageManager from '../render/image_manager';
 import type Context from '../gl/context';
 import type {OverscaledTileID} from './tile_id';
 import type Framebuffer from '../gl/framebuffer';
-import type Transform from '../geo/transform';
 import type {LayerFeatureStates} from './source_state';
 import type {Cancelable} from '../types/cancelable';
-import type {FilterSpecification} from '../style-spec/types';
 
 export type TileState =
     | 'loading'   // Tile data is in the process of loading.
@@ -263,65 +257,8 @@ class Tile {
         }
     }
 
-    // Queries non-symbol features rendered for this tile.
-    // Symbol features are queried globally
-    queryRenderedFeatures(layers: {[_: string]: StyleLayer},
-                          serializedLayers: {[string]: Object},
-                          sourceFeatureState: SourceFeatureState,
-                          queryGeometry: Array<Point>,
-                          cameraQueryGeometry: Array<Point>,
-                          scale: number,
-                          params: { filter: FilterSpecification, layers: Array<string>, availableImages: Array<string> },
-                          transform: Transform,
-                          maxPitchScaleFactor: number,
-                          pixelPosMatrix: Float32Array): {[_: string]: Array<{ featureIndex: number, feature: GeoJSONFeature }>} {
-        if (!this.latestFeatureIndex || !this.latestFeatureIndex.rawTileData)
-            return {};
-
-        return this.latestFeatureIndex.query({
-            queryGeometry,
-            cameraQueryGeometry,
-            scale,
-            tileSize: this.tileSize,
-            pixelPosMatrix,
-            transform,
-            params,
-            queryPadding: this.queryPadding * maxPitchScaleFactor
-        }, layers, serializedLayers, sourceFeatureState);
-    }
-
-    querySourceFeatures(result: Array<GeoJSONFeature>, params: any) {
-        const featureIndex = this.latestFeatureIndex;
-        if (!featureIndex || !featureIndex.rawTileData) return;
-
-        const vtLayers = featureIndex.loadVTLayers();
-
-        const sourceLayer = params ? params.sourceLayer : '';
-        const layer = vtLayers._geojsonTileLayer || vtLayers[sourceLayer];
-
-        if (!layer) return;
-
-        const filter = featureFilter(params && params.filter);
-        const {z, x, y} = this.tileID.canonical;
-        const coord = {z, x, y};
-
-        for (let i = 0; i < layer.length; i++) {
-            const feature = layer.feature(i);
-            if (filter.filter(new EvaluationParameters(this.tileID.overscaledZ), feature)) {
-                const id = featureIndex.getId(feature, sourceLayer);
-                const geojsonFeature = new GeoJSONFeature(feature, z, x, y, id);
-                (geojsonFeature: any).tile = coord;
-                result.push(geojsonFeature);
-            }
-        }
-    }
-
     hasData() {
         return this.state === 'loaded' || this.state === 'reloading' || this.state === 'expired';
-    }
-
-    patternsLoaded() {
-        return this.imageAtlas && !!Object.keys(this.imageAtlas.patternPositions).length;
     }
 
     setExpiryData(data: any) {
@@ -425,14 +362,6 @@ class Tile {
 
     setHoldDuration(duration: number) {
         this.symbolFadeHoldUntil = browser.now() + duration;
-    }
-
-    setDependencies(namespace: string, dependencies: Array<string>) {
-        const index = {};
-        for (const dep of dependencies) {
-            index[dep] = true;
-        }
-        this.dependencies[namespace] = index;
     }
 
     hasDependency(namespaces: Array<string>, keys: Array<string>) {
