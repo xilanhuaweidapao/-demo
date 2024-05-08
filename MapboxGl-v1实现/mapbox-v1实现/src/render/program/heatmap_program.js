@@ -63,7 +63,7 @@ const heatmapTextureUniformValues = (
 ): UniformValues<HeatmapTextureUniformsType> => {
     const matrix = mat4.create();
     mat4.ortho(matrix, 0, painter.width, painter.height, 0, 0, 1);
-
+    // gl-mark
     const gl = painter.context.gl;
 
     return {

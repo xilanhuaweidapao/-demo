@@ -183,7 +183,7 @@ class Painter {
         quadTriangleIndices.emplaceBack(0, 1, 2);
         quadTriangleIndices.emplaceBack(2, 1, 3);
         this.quadTriangleIndexBuffer = context.createIndexBuffer(quadTriangleIndices);
-
+        // gl-mark
         const gl = this.context.gl;
         this.stencilClearMode = new StencilMode({func: gl.ALWAYS, mask: 0}, 0x0, 0xFF, gl.ZERO, gl.ZERO, gl.ZERO);
     }
@@ -194,6 +194,7 @@ class Painter {
      */
     clearStencil() {
         const context = this.context;
+        // gl-mark
         const gl = context.gl;
 
         this.nextStencilID = 1;
@@ -221,6 +222,7 @@ class Painter {
         this.currentStencilSource = layer.source;
 
         const context = this.context;
+        // gl-mark
         const gl = context.gl;
 
         if (this.nextStencilID + tileIDs.length > 256) {
@@ -258,6 +260,7 @@ class Painter {
      * Returns [StencilMode for tile overscaleZ map, sortedCoords].
      */
     stencilConfigForOverlap(tileIDs: Array<OverscaledTileID>): [{[_: number]: $ReadOnly<StencilMode>}, Array<OverscaledTileID>] {
+        // gl-mark
         const gl = this.context.gl;
         const coords = tileIDs.sort((a, b) => b.overscaledZ - a.overscaledZ);
         const minTileZ = coords[coords.length - 1].overscaledZ;
@@ -278,6 +281,7 @@ class Painter {
     }
 
     colorModeForRenderPass(): $ReadOnly<ColorMode> {
+        // gl-mark
         const gl = this.context.gl;
         if (this._showOverdrawInspector) {
             const numOverdrawSteps = 8;
@@ -294,6 +298,7 @@ class Painter {
     depthModeForSublayer(n: number, mask: DepthMaskType, func: ?DepthFuncType): $ReadOnly<DepthMode> {
         if (!this.opaquePassEnabledForLayer()) return DepthMode.disabled;
         const depth = 1 - ((1 + this.currentLayer) * this.numSublayers + n) * this.depthEpsilon;
+        // gl-mark
         return new DepthMode(func || this.context.gl.LEQUAL, mask, [depth, depth]);
     }
 
@@ -527,6 +532,7 @@ class Painter {
      * Set GL state that is shared by all layers.
      */
     setBaseState() {
+      // gl-mark
         const gl = this.context.gl;
         this.context.cullFace.set(false);
         this.context.viewport.set([0, 0, this.width, this.height]);

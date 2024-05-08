@@ -30,6 +30,7 @@ let quadTriangles: ?QuadTriangleArray;
 
 function drawCollisionDebug(painter: Painter, sourceCache: SourceCache, layer: StyleLayer, coords: Array<OverscaledTileID>, translate: [number, number], translateAnchor: 'map' | 'viewport', isText: boolean) {
     const context = painter.context;
+    // gl-mark
     const gl = context.gl;
     const program = painter.useProgram('collisionBox');
     const tileBatches: Array<TileBatch> = [];

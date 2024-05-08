@@ -47,6 +47,7 @@ function drawCircles(painter: Painter, sourceCache: SourceCache, layer: CircleSt
     }
 
     const context = painter.context;
+    // gl-mark
     const gl = context.gl;
 
     const depthMode = painter.depthModeForSublayer(0, DepthMode.ReadOnly);

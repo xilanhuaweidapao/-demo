@@ -186,6 +186,7 @@ class LineAtlas {
     }
 
     bind(context: Context) {
+      // gl-mark
         const gl = context.gl;
         if (!this.texture) {
             this.texture = gl.createTexture();
