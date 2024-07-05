@@ -21,7 +21,6 @@ import {
 } from '../source/source';
 import {queryRenderedFeatures, queryRenderedSymbols, querySourceFeatures} from '../source/query_features';
 import SourceCache from '../source/source_cache';
-import GeoJSONSource from '../source/geojson_source';
 import styleSpec from '../style-spec/reference/latest';
 import getWorkerPool from '../util/global_worker_pool';
 import deref from '../style-spec/deref';
@@ -604,12 +603,6 @@ class Style extends Evented {
     */
     setGeoJSONSourceData(id: string, data: GeoJSON | string) {
         this._checkLoaded();
-
-        assert(this.sourceCaches[id] !== undefined, 'There is no source with this ID');
-        const geojsonSource: GeoJSONSource = (this.sourceCaches[id].getSource(): any);
-        assert(geojsonSource.type === 'geojson');
-
-        geojsonSource.setData(data);
         this._changed = true;
     }
 

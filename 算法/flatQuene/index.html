@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <script>
+      class FlatQuene {
+        constructor() {
+          this.length = 0
+          this.ids = []
+          this.values = []
+        }
+
+        push(id, value) {
+          let pos = this.length++
+
+          while (pos > 0) {
+            const parent = (pos - 1) >> 1
+            let parentId = this.ids[parent]
+            let parentValue = this.values[parent]
+            if (value >= parent) {
+              break
+            }
+            this.ids[pos] = parentId
+            this.values[pos] = parentValue
+            pos = parent
+          }
+
+          this.ids[pos] = id
+          this.values[pos] = value
+        }
+
+        clear() {
+          this.length = 0
+        }
+
+        shrink() {
+          this.id.length = this.values.length = this.length
+        }
+
+        peek() {
+          if (this.length === 0) {
+            return
+          }
+          return this.ids[0]
+        }
+
+        peekValue() {
+          if (this.length === 0) {
+            return
+          }
+          return this.values[0]
+        }
+
+        pop() {
+          if (this.length === 0) return undefined
+
+          const top = this.ids[0]
+          this.length--
+
+          if (this.length > 0) {
+            const id = (this.ids[0] = this.ids[this.length])
+            const value = (this.values[0] = this.values[this.length])
+            const halfLength = this.length >> 1
+            let pos = 0
+
+            while (pos < halfLength) {
+              let left = (pos << 1) + 1
+              const right = left + 1
+              let bestIndex = this.ids[left]
+              let bestValue = this.values[left]
+              const rightValue = this.values[right]
+
+              if (right < this.length && rightValue < bestValue) {
+                left = right
+                bestIndex = this.ids[right]
+                bestValue = rightValue
+              }
+              if (bestValue >= value) break
+
+              this.ids[pos] = bestIndex
+              this.values[pos] = bestValue
+              pos = left
+            }
+
+            this.ids[pos] = id
+            this.values[pos] = value
+          }
+
+          return top
+        }
+      }
+
+      // let fq = new FlatQuene();
+      // fq.push('111', 1);
+      // fq.push('333', 3);
+      // fq.push('555', 5);
+      // fq.push('777', 7);
+      // fq.push('999', 9);
+      // fq.push('111111', 11);
+      // console.log('fq', fq);
+      // // fq.push('888', 6);
+      // fq.push('222', 2);
+      // fq.push('222', 2);
+      // // fq.push('444', 4);
+      // // fq.push('1515', 1.5);
+      // console.log('fq1', fq);
+    </script>
+  </body>
+</html>

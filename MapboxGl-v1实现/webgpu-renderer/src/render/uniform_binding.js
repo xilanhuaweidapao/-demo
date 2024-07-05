@@ -13,7 +13,7 @@ class Uniform<T> {
     location: ?WebGLUniformLocation;
     current: T;
 
-    constructor(context: Context, location: WebGLUniformLocation) {
+    constructor(context, location: WebGLUniformLocation) {
       // gl-mark
         this.gl = context.gl;
         this.location = location;
@@ -38,7 +38,7 @@ class Uniform1i extends Uniform<number> {
 }
 
 class Uniform1f extends Uniform<number> {
-    constructor(context: Context, location: WebGLUniformLocation) {
+    constructor(context, location: WebGLUniformLocation) {
         super(context, location);
         this.current = 0;
     }
