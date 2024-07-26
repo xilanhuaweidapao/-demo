@@ -66,7 +66,7 @@ class Source extends BaseObject {
      * @private
      * @type {?Attribution}
      */
-    this.attributions_ = adaptAttributions(options.attributions);
+    this.attributions_ = null;
 
     /**
      * @private
@@ -217,30 +217,6 @@ class Source extends BaseObject {
     this.state_ = state;
     this.changed();
   }
-}
-
-/**
- * Turns the attributions option into an attributions function.
- * @param {AttributionLike|undefined} attributionLike The attribution option.
- * @return {Attribution|null} An attribution function (or null).
- */
-function adaptAttributions(attributionLike) {
-  if (!attributionLike) {
-    return null;
-  }
-  if (Array.isArray(attributionLike)) {
-    return function (frameState) {
-      return attributionLike;
-    };
-  }
-
-  if (typeof attributionLike === 'function') {
-    return attributionLike;
-  }
-
-  return function (frameState) {
-    return [attributionLike];
-  };
 }
 
 export default Source;

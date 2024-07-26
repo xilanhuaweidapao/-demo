@@ -31,12 +31,14 @@ export const DEFAULT_RADIUS = 6371008.8;
  * @return {number} The great circle distance between the points (in meters).
  * @api
  */
+// wdp +1
 export function getDistance(c1, c2, radius) {
   radius = radius || DEFAULT_RADIUS;
   const lat1 = toRadians(c1[1]);
   const lat2 = toRadians(c2[1]);
   const deltaLatBy2 = (lat2 - lat1) / 2;
   const deltaLonBy2 = toRadians(c2[0] - c1[0]) / 2;
+  // 这是哪个公式 ？
   const a =
     Math.sin(deltaLatBy2) * Math.sin(deltaLatBy2) +
     Math.sin(deltaLonBy2) *
@@ -244,6 +246,7 @@ export function getArea(geometry, options) {
  *     mean radius using the WGS84 ellipsoid.
  * @return {import("./coordinate.js").Coordinate} The target point.
  */
+// wdp +1
 export function offset(c1, distance, bearing, radius) {
   radius = radius || DEFAULT_RADIUS;
   const lat1 = toRadians(c1[1]);

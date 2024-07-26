@@ -21,6 +21,7 @@ export const DROP = Infinity;
  *
  * @template T
  */
+// 已看 wdp
 class PriorityQueue {
   /**
    * @param {function(T): number} priorityFunction Priority function.
@@ -94,7 +95,7 @@ class PriorityQueue {
    * @return {boolean} The element was added to the queue.
    */
   enqueue(element) {
-    assert(!(this.keyFunction_(element) in this.queuedElements_), 31); // Tried to enqueue an `element` that was already added to the queue
+    // assert(!(this.keyFunction_(element) in this.queuedElements_), 31); // Tried to enqueue an `element` that was already added to the queue
     const priority = this.priorityFunction_(element);
     if (priority != DROP) {
       this.elements_.push(element);

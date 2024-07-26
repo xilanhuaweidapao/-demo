@@ -6,6 +6,7 @@ import DoubleClickZoom from './DoubleClickZoom.js';
 import DragPan from './DragPan.js';
 import DragZoom from './DragZoom.js';
 import Kinetic from '../Kinetic.js';
+
 import MouseWheelZoom from './MouseWheelZoom.js';
 
 /**

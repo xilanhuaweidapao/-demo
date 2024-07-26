@@ -1,7 +1,7 @@
 /**
  * @module ol/TileState
  */
-// 已看
+// 已看 +1
 /**
  * @enum {number}
  */

@@ -1,3 +1,4 @@
+// https://github.com/mourner/tinyqueue/blob/master/index.js
 export default class TinyQueue {
     constructor(data = [], compare = defaultCompare) {
         this.data = data;

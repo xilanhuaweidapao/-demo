@@ -1,6 +1,7 @@
 /**
  * @module ol/TileRange
  */
+// wdp +1
 
 /**
  * A representation of a contiguous block of tiles.  A tile range is specified
@@ -99,6 +100,7 @@ class TileRange {
   /**
    * @return {number} Height.
    */
+  // wdp 为啥要加 1
   getHeight() {
     return this.maxY - this.minY + 1;
   }
