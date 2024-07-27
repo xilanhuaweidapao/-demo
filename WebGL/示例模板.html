@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模板</title>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <script src="../Demo/webgl/utils/webgl-helper.js"></script>
+    <script type="shader-source" id="vertexShader">
+        void main() {
+            gl_Position;
+            gl_PointSize;
+        }
+    </script>
+    <script type="shader-source" id="fragmentShader">
+        void main() {
+            gl_FragColor;
+        }
+    </script>
+    <script>
+        const canvas = getCanvas('#canvas');
+        resizeCanvas(canvas);
+        const gl = getContext(canvas);
+        const vertexShader = createShaderFromScript(gl, gl.VERTEX_SHADER, 'vertexShader');
+        const fragmentShader = createShaderFromScript(gl, gl.FRAGMENT_SHADER, 'fragmentShader');
+        const program = createSimpleProgram(gl, vertexShader, fragmentShader);
+        gl.useProgram(program);
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        // gl.drawArrays(gl.POINTS, 0, 1);
+    </script>
+</body>
+
+</html>

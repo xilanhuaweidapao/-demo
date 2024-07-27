@@ -2,7 +2,6 @@
 
 import {uniqueId, asyncAll} from './util';
 import Actor from './actor';
-import assert from 'assert';
 
 import type WorkerPool from './worker_pool';
 
@@ -33,7 +32,6 @@ class Dispatcher {
             actor.name = `Worker ${i}`;
             this.actors.push(actor);
         }
-        assert(this.actors.length);
     }
 
     /**
@@ -41,7 +39,6 @@ class Dispatcher {
      * @private
      */
     broadcast(type: string, data: mixed, cb?: Function) {
-        assert(this.actors.length);
         cb = cb || function () {};
         asyncAll(this.actors, (actor, done) => {
             actor.send(type, data, done);
@@ -53,7 +50,6 @@ class Dispatcher {
      * @returns An actor object backed by a web worker for processing messages.
      */
     getActor(): Actor {
-        assert(this.actors.length);
         this.currentActor = (this.currentActor + 1) % this.actors.length;
         return this.actors[this.currentActor];
     }
