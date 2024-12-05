@@ -1,5 +1,5 @@
 module.exports = function (max) {
-
+  // 没看懂这是啥实现？？？
   if (!max) throw Error('hashlru must have a max value, of type number, greater than 0')
 
   var size = 0, cache = Object.create(null), _cache = Object.create(null)

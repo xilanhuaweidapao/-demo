@@ -66,6 +66,7 @@
     * @api
     */
    changed() {
+      // wdp 为什么需要计数？
      ++this.revision_;
      this.dispatchEvent(EventType.CHANGE);
    }

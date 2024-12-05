@@ -123,6 +123,8 @@ export function setFromArray(transform1, transform2) {
  * @return {import("./coordinate.js").Coordinate|import("./pixel.js").Pixel} return coordinate so that operations can be
  *     chained together.
  */
+// 干嘛的？wdp
+// 应用了旋转 缩放 平移后的新坐标
 export function apply(transform, coordinate) {
   const x = coordinate[0];
   const y = coordinate[1];
@@ -217,15 +219,6 @@ export function compose(transform, dx1, dy1, sx, sy, angle, dx2, dy2) {
  */
 export function composeCssTransform(dx1, dy1, sx, sy, angle, dx2, dy2) {
   return toString(compose(create(), dx1, dy1, sx, sy, angle, dx2, dy2));
-}
-
-/**
- * Invert the given transform.
- * @param {!Transform} source The source transform to invert.
- * @return {!Transform} The inverted (source) transform.
- */
-export function invert(source) {
-  return makeInverse(source, source);
 }
 
 /**

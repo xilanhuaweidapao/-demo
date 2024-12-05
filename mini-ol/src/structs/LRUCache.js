@@ -21,6 +21,7 @@ import {assert} from '../asserts.js';
  * @fires import("../events/Event.js").default
  * @template T
  */
+// wdp +1
 class LRUCache {
   /**
    * @param {number} [highWaterMark] High water mark.
@@ -266,6 +267,7 @@ class LRUCache {
     if (!this.newest_) {
       this.oldest_ = entry;
     } else {
+      // wpd 没看懂
       this.newest_.newer = entry;
     }
     this.newest_ = entry;

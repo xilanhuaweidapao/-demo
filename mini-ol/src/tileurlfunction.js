@@ -90,7 +90,7 @@ export function createFromTileUrlFunctions(tileUrlFunctions) {
 export function nullTileUrlFunction(tileCoord, pixelRatio, projection) {
   return undefined;
 }
-
+// wdp +1
 /**
  * @param {string} url URL.
  * @return {Array<string>} Array of urls.

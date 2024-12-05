@@ -79,7 +79,7 @@ class XYZ extends TileImage {
 
     const projection =
       options.projection !== undefined ? options.projection : 'EPSG:3857';
-
+    // wdp 为什么要有 tileGrid 的概念 ？？
     const tileGrid =
       options.tileGrid !== undefined
         ? options.tileGrid
