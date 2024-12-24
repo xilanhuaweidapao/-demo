@@ -42,6 +42,7 @@ export function create() {
  * @param {!Transform} transform Transform.
  * @return {!Transform} Transform.
  */
+// 没用
 export function reset(transform) {
   return set(transform, 1, 0, 0, 1, 0, 0);
 }
@@ -125,6 +126,8 @@ export function setFromArray(transform1, transform2) {
  */
 // 干嘛的？wdp
 // 应用了旋转 缩放 平移后的新坐标
+// [ a c e ] x [ x ]
+  // [ b d f ]   [ y ] 
 export function apply(transform, coordinate) {
   const x = coordinate[0];
   const y = coordinate[1];

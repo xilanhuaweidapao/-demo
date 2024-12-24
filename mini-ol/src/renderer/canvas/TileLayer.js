@@ -370,6 +370,7 @@ class CanvasTileLayerRenderer extends CanvasLayerRenderer {
       ((tileResolution / viewResolution) * pixelRatio) / tilePixelRatio;
 
     // set forward and inverse pixel transforms
+    // 为什么最终用css transform 的旋转而不是 canvas的旋转？
     composeTransform(
       this.pixelTransform,
       frameState.size[0] / 2,
