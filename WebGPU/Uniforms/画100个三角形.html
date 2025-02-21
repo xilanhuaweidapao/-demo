@@ -4,11 +4,11 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>webgpu storage buffer</title>
+    <title>webgpu storage buffer 画100三角形</title>
     <style></style>
   </head>
   <body>
-    <canvas></canvas>
+    <canvas width="800" height="800"></canvas>
     <script>
       async function main() {
         const adapter = await navigator.gpu?.requestAdapter()
@@ -55,18 +55,24 @@
     `
         })
 
+        const rand = (min, max) => {
+          if (min === undefined) {
+            min = 0
+            max = 1
+          } else if (max === undefined) {
+            max = min
+            min = 0
+          }
+          return min + Math.random() * (max - min)
+        }
+        // 为什么需要 offset? 三角形的偏移
         const uniformBufferSize = 4 * 4 + 4 * 2 + 4 * 2
-        const uniformBuffer = device.createBuffer({
-          size: uniformBufferSize,
-          usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST
-        })
 
-        const uniformValues = new Float32Array(uniformBufferSize / 4)
         const colorOffset = 0
         const scaleOffset = 4
         const offset = 6
-        uniformValues.set([1, 1, 0, 1], colorOffset)
-        uniformValues.set([-0.5, -0.5], offset)
+        const triangleCount = 100
+        const objInfos = []
 
         const pipeline = device.createRenderPipeline({
           label: "our hardcoded red triangle pipeline",
@@ -82,11 +88,35 @@
           }
         })
 
+        for (let i = 0; i < triangleCount; i++) {
+          // 为什么不是一个 buffer 存所有的三角形数据？
+          // 因为每个三角形的颜色、缩放、偏移都是不一样的，所以需要一个 buffer 存每个三角形的数据？
+          const uniformBuffer = device.createBuffer({
+            size: uniformBufferSize,
+            usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.UNIFORM
+          })
+          const uniformValues = new Float32Array(uniformBufferSize / 4)
+          uniformValues.set([1, 1, 0, 1], colorOffset)
+          uniformValues.set([rand(-0.9, 0.9), rand(-0.9, 0.9)], offset)
+
+          const bindGroup = device.createBindGroup({
+            layout: pipeline.getBindGroupLayout(0),
+            entries: [{ binding: 0, resource: { buffer: uniformBuffer } }]
+          });
+
+          objInfos.push({
+            scale: rand(0.2, 0.5),
+            uniformBuffer,
+            uniformValues,
+            bindGroup
+          })
+        }
+
         // 绑定缓冲区
-        const bindGroup = device.createBindGroup({
-          layout: pipeline.getBindGroupLayout(0),
-          entries: [{ binding: 0, resource: { buffer: uniformBuffer } }]
-        })
+        // const bindGroup = device.createBindGroup({
+        //   layout: pipeline.getBindGroupLayout(0),
+        //   entries: [{ binding: 0, resource: { buffer: uniformBuffer } }]
+        // })
 
         const renderPassDescriptor = {
           label: "our basic canvas renderPass",
@@ -112,11 +142,16 @@
 
           // make a render pass encoder to encode render specific commands
           const pass = encoder.beginRenderPass(renderPassDescriptor)
-          uniformValues.set([0.8, 0.8], scaleOffset)
-          device.queue.writeBuffer(uniformBuffer, 0, uniformValues)
+          // uniformValues.set([0.8, 0.8], scaleOffset)
+          // device.queue.writeBuffer(uniformBuffer, 0, uniformValues)
           pass.setPipeline(pipeline)
-          pass.setBindGroup(0, bindGroup)
-          pass.draw(3) // call our vertex shader 3 times.
+          for (let i = 0; i < triangleCount; i++) {
+            const objInfo = objInfos[i]
+            objInfo.uniformValues.set([objInfo.scale, objInfo.scale], scaleOffset)
+            device.queue.writeBuffer(objInfo.uniformBuffer, 0, objInfo.uniformValues)
+            pass.setBindGroup(0, objInfo.bindGroup)
+            pass.draw(3) // call our vertex shader 3 times.
+          }
           pass.end()
 
           const commandBuffer = encoder.finish()
