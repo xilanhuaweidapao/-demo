@@ -5,19 +5,12 @@ import LayerRenderer from '../Layer.js';
 import RenderEvent from '../../render/Event.js';
 import RenderEventType from '../../render/EventType.js';
 import {
-  apply as applyTransform,
   compose as composeTransform,
   create as createTransform,
 } from '../../transform.js';
 import {asArray} from '../../color.js';
 import {createCanvasContext2D} from '../../dom.js';
 import {equals} from '../../array.js';
-import {
-  getBottomLeft,
-  getBottomRight,
-  getTopLeft,
-  getTopRight,
-} from '../../extent.js';
 
 /**
  * @type {Array<HTMLCanvasElement>}
@@ -204,38 +197,6 @@ class CanvasLayerRenderer extends LayerRenderer {
     ) {
       this.container.style.backgroundColor = backgroundColor;
     }
-  }
-
-  /**
-   * @param {CanvasRenderingContext2D} context Context.
-   * @param {import("../../Map.js").FrameState} frameState Frame state.
-   * @param {import("../../extent.js").Extent} extent Clip extent.
-   * @protected
-   */
-  clipUnrotated(context, frameState, extent) {
-    const topLeft = getTopLeft(extent);
-    const topRight = getTopRight(extent);
-    const bottomRight = getBottomRight(extent);
-    const bottomLeft = getBottomLeft(extent);
-
-    applyTransform(frameState.coordinateToPixelTransform, topLeft);
-    applyTransform(frameState.coordinateToPixelTransform, topRight);
-    applyTransform(frameState.coordinateToPixelTransform, bottomRight);
-    applyTransform(frameState.coordinateToPixelTransform, bottomLeft);
-
-    const inverted = this.inversePixelTransform;
-    applyTransform(inverted, topLeft);
-    applyTransform(inverted, topRight);
-    applyTransform(inverted, bottomRight);
-    applyTransform(inverted, bottomLeft);
-
-    context.save();
-    context.beginPath();
-    context.moveTo(Math.round(topLeft[0]), Math.round(topLeft[1]));
-    context.lineTo(Math.round(topRight[0]), Math.round(topRight[1]));
-    context.lineTo(Math.round(bottomRight[0]), Math.round(bottomRight[1]));
-    context.lineTo(Math.round(bottomLeft[0]), Math.round(bottomLeft[1]));
-    context.clip();
   }
 
   /**

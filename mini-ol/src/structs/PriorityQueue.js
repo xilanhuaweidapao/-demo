@@ -21,7 +21,7 @@ export const DROP = Infinity;
  *
  * @template T
  */
-// 已看 wdp
+// 已看 wdp +2 烧脑
 class PriorityQueue {
   /**
    * @param {function(T): number} priorityFunction Priority function.
@@ -80,6 +80,7 @@ class PriorityQueue {
       elements.length = 0;
       priorities.length = 0;
     } else {
+      // wdp 为什么不是按照顺序来排优先？ 而是二叉树
       elements[0] = elements.pop();
       priorities[0] = priorities.pop();
       this.siftUp_(0);

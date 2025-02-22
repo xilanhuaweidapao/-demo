@@ -94,7 +94,7 @@ class CompositeMapRenderer extends MapRenderer {
 
     this.calculateMatrices2D(frameState);
     this.dispatchRenderEvent(RenderEventType.PRECOMPOSE, frameState);
-
+    // wdp? 为啥突然要排序？
     const layerStatesArray = frameState.layerStatesArray.sort(function (a, b) {
       return a.zIndex - b.zIndex;
     });

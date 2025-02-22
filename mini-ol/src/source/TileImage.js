@@ -435,6 +435,7 @@ class TileImage extends UrlTile {
  * @param {ImageTile} imageTile Image tile.
  * @param {string} src Source.
  */
+// wdp+1
 function defaultTileLoadFunction(imageTile, src) {
   /** @type {HTMLImageElement|HTMLVideoElement} */ (imageTile.getImage()).src =
     src;

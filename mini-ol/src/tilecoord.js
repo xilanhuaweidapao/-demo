@@ -71,7 +71,7 @@ export function fromKey(key) {
  * @param {TileCoord} tileCoord Tile coord.
  * @return {number} Hash.
  */
-export function hash(tileCoord) {
+export function hash(tileCoord) { // zxy
   return (tileCoord[1] << tileCoord[0]) + tileCoord[2];
 }
 

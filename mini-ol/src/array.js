@@ -72,6 +72,7 @@ export function numberSafeCompareFunction(a, b) {
  *    < 0 means return the smallest nearest.
  * @return {number} Index.
  */
+// wdp +1
 export function linearFindNearest(arr, target, direction) {
   const n = arr.length;
   if (arr[0] <= target) {

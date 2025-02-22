@@ -142,6 +142,7 @@ class CanvasTileLayerRenderer extends CanvasLayerRenderer {
    * @param {import("../../pixel.js").Pixel} pixel Pixel.
    * @return {Uint8ClampedArray} Data at the pixel location.
    */
+  // 没用
   getData(pixel) {
     const frameState = this.frameState;
     if (!frameState) {
@@ -369,6 +370,7 @@ class CanvasTileLayerRenderer extends CanvasLayerRenderer {
       ((tileResolution / viewResolution) * pixelRatio) / tilePixelRatio;
 
     // set forward and inverse pixel transforms
+    // 为什么最终用css transform 的旋转而不是 canvas的旋转？
     composeTransform(
       this.pixelTransform,
       frameState.size[0] / 2,
@@ -395,7 +397,7 @@ class CanvasTileLayerRenderer extends CanvasLayerRenderer {
       height / 2,
       canvasScale,
       canvasScale,
-      0,
+      0, // 旋转
       -width / 2,
       -height / 2
     );
@@ -405,10 +407,6 @@ class CanvasTileLayerRenderer extends CanvasLayerRenderer {
       canvas.height = height;
     } else if (!this.containerReused) {
       context.clearRect(0, 0, width, height);
-    }
-
-    if (layerExtent) {
-      this.clipUnrotated(context, frameState, layerExtent);
     }
 
     if (!tileSource.getInterpolate()) {
@@ -465,6 +463,7 @@ class CanvasTileLayerRenderer extends CanvasLayerRenderer {
         const tileCoord = tile.tileCoord;
 
         // Calculate integer positions and sizes so that tiles align
+        // dx dy 每张瓦片的宽高
         const xIndex = originTileCoord[1] - tileCoord[1];
         const nextX = Math.round(origin[0] - (xIndex - 1) * dx);
         const yIndex = originTileCoord[2] - tileCoord[2];
@@ -595,6 +594,7 @@ class CanvasTileLayerRenderer extends CanvasLayerRenderer {
       this.context.save();
       this.context.globalAlpha = alpha;
     }
+    // context.drawImage(image, sx, sy, sWidth, sHeight, dx, dy, dWidth, dHeight);
     this.context.drawImage(image, gutter, gutter, image.width - 2 * gutter, image.height - 2 * gutter, x, y, w, h);
     if (alphaChanged) { this.context.restore(); }
     if (alpha !== layerState.opacity) {

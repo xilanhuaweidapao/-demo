@@ -181,6 +181,7 @@
     * @return {Array<import("./Layer.js").default>} Array of layers.
     */
    getLayersArray(array) {
+     // wdp ???
      array = array ? array : [];
      array.push(this);
      return array;

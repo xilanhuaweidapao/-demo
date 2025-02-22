@@ -21,7 +21,6 @@ import TileQueue, {getTilePriority} from './TileQueue.js';
 import View from './View.js';
 import ViewHint from './ViewHint.js';
 import {DEVICE_PIXEL_RATIO, PASSIVE_EVENT_LISTENERS} from './has.js';
-import {TRUE} from './functions.js';
 import {
   apply as applyTransform,
   create as createTransform,
@@ -34,7 +33,6 @@ import {
   getForViewAndSize,
   isEmpty,
 } from './extent.js';
-// import {defaults as defaultControls} from './control/defaults.js';
 import {defaults as defaultInteractions} from './interaction/defaults.js';
 import {fromUserCoordinate, toUserCoordinate} from './proj.js';
 import {getUid} from './util.js';
@@ -536,28 +534,6 @@ class Map extends BaseObject {
   }
 
   /**
-   * Add the given control to the map.
-   * @param {import("./control/Control.js").default} control Control.
-   * @api
-   */
-  addControl(control) {
-    this.getControls().push(control);
-  }
-
-  /**
-   * Add the given interaction to the map. If you want to add an interaction
-   * at another point of the collection use `getInteractions()` and the methods
-   * available on {@link module:ol/Collection~Collection}. This can be used to
-   * stop the event propagation from the handleEvent function. The interactions
-   * get to handle the events in the reverse order of this collection.
-   * @param {import("./interaction/Interaction.js").default} interaction Interaction to add.
-   * @api
-   */
-  addInteraction(interaction) {
-    this.getInteractions().push(interaction);
-  }
-
-  /**
    * Adds the given layer to the top of this map. If you want to add a layer
    * elsewhere in the stack, use `getLayers()` and the methods available on
    * {@link module:ol/Collection~Collection}.
@@ -576,15 +552,6 @@ class Map extends BaseObject {
    */
   handleLayerAdd_(event) {
     setLayerMapProperty(event.layer, this);
-  }
-
-  /**
-   * Add the given overlay to the map.
-   * @param {import("./Overlay.js").default} overlay Overlay.
-   * @api
-   */
-  addOverlay(overlay) {
-    this.getOverlays().push(overlay);
   }
 
   /**
@@ -609,135 +576,6 @@ class Map extends BaseObject {
     this.overlays_.clear();
     this.setTarget(null);
     super.disposeInternal();
-  }
-
-  /**
-   * Detect features that intersect a pixel on the viewport, and execute a
-   * callback with each intersecting feature. Layers included in the detection can
-   * be configured through the `layerFilter` option in `options`.
-   * @param {import("./pixel.js").Pixel} pixel Pixel.
-   * @param {function(import("./Feature.js").FeatureLike, import("./layer/Layer.js").default<import("./source/Source").default>, import("./geom/SimpleGeometry.js").default): T} callback Feature callback. The callback will be
-   *     called with two arguments. The first argument is one
-   *     {@link module:ol/Feature~Feature feature} or
-   *     {@link module:ol/render/Feature~RenderFeature render feature} at the pixel, the second is
-   *     the {@link module:ol/layer/Layer~Layer layer} of the feature and will be null for
-   *     unmanaged layers. To stop detection, callback functions can return a
-   *     truthy value.
-   * @param {AtPixelOptions} [options] Optional options.
-   * @return {T|undefined} Callback result, i.e. the return value of last
-   * callback execution, or the first truthy callback return value.
-   * @template T
-   * @api
-   */
-  forEachFeatureAtPixel(pixel, callback, options) {
-    if (!this.frameState_ || !this.renderer_) {
-      return;
-    }
-    const coordinate = this.getCoordinateFromPixelInternal(pixel);
-    options = options !== undefined ? options : {};
-    const hitTolerance =
-      options.hitTolerance !== undefined ? options.hitTolerance : 0;
-    const layerFilter =
-      options.layerFilter !== undefined ? options.layerFilter : TRUE;
-    const checkWrapped = options.checkWrapped !== false;
-    return this.renderer_.forEachFeatureAtCoordinate(
-      coordinate,
-      this.frameState_,
-      hitTolerance,
-      checkWrapped,
-      callback,
-      null,
-      layerFilter,
-      null
-    );
-  }
-
-  /**
-   * Get all features that intersect a pixel on the viewport.
-   * @param {import("./pixel.js").Pixel} pixel Pixel.
-   * @param {AtPixelOptions} [options] Optional options.
-   * @return {Array<import("./Feature.js").FeatureLike>} The detected features or
-   * an empty array if none were found.
-   * @api
-   */
-  getFeaturesAtPixel(pixel, options) {
-    const features = [];
-    this.forEachFeatureAtPixel(
-      pixel,
-      function (feature) {
-        features.push(feature);
-      },
-      options
-    );
-    return features;
-  }
-
-  /**
-   * Get all layers from all layer groups.
-   * @return {Array<import("./layer/Layer.js").default>} Layers.
-   * @api
-   */
-  getAllLayers() {
-    const layers = [];
-    function addLayersFrom(layerGroup) {
-      layerGroup.forEach(function (layer) {
-        if (layer instanceof LayerGroup) {
-          addLayersFrom(layer.getLayers());
-        } else {
-          layers.push(layer);
-        }
-      });
-    }
-    addLayersFrom(this.getLayers());
-    return layers;
-  }
-
-  /**
-   * Detect if features intersect a pixel on the viewport. Layers included in the
-   * detection can be configured through the `layerFilter` option.
-   * @param {import("./pixel.js").Pixel} pixel Pixel.
-   * @param {AtPixelOptions} [options] Optional options.
-   * @return {boolean} Is there a feature at the given pixel?
-   * @api
-   */
-  hasFeatureAtPixel(pixel, options) {
-    if (!this.frameState_ || !this.renderer_) {
-      return false;
-    }
-    const coordinate = this.getCoordinateFromPixelInternal(pixel);
-    options = options !== undefined ? options : {};
-    const layerFilter =
-      options.layerFilter !== undefined ? options.layerFilter : TRUE;
-    const hitTolerance =
-      options.hitTolerance !== undefined ? options.hitTolerance : 0;
-    const checkWrapped = options.checkWrapped !== false;
-    return this.renderer_.hasFeatureAtCoordinate(
-      coordinate,
-      this.frameState_,
-      hitTolerance,
-      checkWrapped,
-      layerFilter,
-      null
-    );
-  }
-
-  /**
-   * Returns the coordinate in user projection for a browser event.
-   * @param {MouseEvent} event Event.
-   * @return {import("./coordinate.js").Coordinate} Coordinate.
-   * @api
-   */
-  getEventCoordinate(event) {
-    return this.getCoordinateFromPixel(this.getEventPixel(event));
-  }
-
-  /**
-   * Returns the coordinate in view projection for a browser event.
-   * @param {MouseEvent} event Event.
-   * @return {import("./coordinate.js").Coordinate} Coordinate.
-   */
-  getEventCoordinateInternal(event) {
-    return this.getCoordinateFromPixelInternal(this.getEventPixel(event));
   }
 
   /**
@@ -1120,6 +958,7 @@ class Map extends BaseObject {
       let maxNewLoads = maxTotalLoading;
       if (frameState) {
         const hints = frameState.viewHints;
+        // wdp 干嘛的？
         if (hints[ViewHint.ANIMATING] || hints[ViewHint.INTERACTING]) {
           const lowOnFrameBudget = Date.now() - frameState.time > 8;
           maxTotalLoading = lowOnFrameBudget ? 0 : 8;
@@ -1334,29 +1173,11 @@ class Map extends BaseObject {
   }
 
   /**
-   * @return {boolean} Is rendered.
-   */
-  isRendered() {
-    return !!this.frameState_;
-  }
-
-  /**
    * @private
    */
   animationDelay_() {
     this.animationDelayKey_ = undefined;
     this.renderFrame_(Date.now());
-  }
-
-  /**
-   * Requests an immediate render in a synchronous manner.
-   * @api
-   */
-  renderSync() {
-    if (this.animationDelayKey_) {
-      cancelAnimationFrame(this.animationDelayKey_);
-    }
-    this.animationDelay_();
   }
 
   /**
@@ -1383,28 +1204,6 @@ class Map extends BaseObject {
   }
 
   /**
-   * Remove the given control from the map.
-   * @param {import("./control/Control.js").default} control Control.
-   * @return {import("./control/Control.js").default|undefined} The removed control (or undefined
-   *     if the control was not found).
-   * @api
-   */
-  removeControl(control) {
-    return this.getControls().remove(control);
-  }
-
-  /**
-   * Remove the given interaction from the map.
-   * @param {import("./interaction/Interaction.js").default} interaction Interaction to remove.
-   * @return {import("./interaction/Interaction.js").default|undefined} The removed interaction (or
-   *     undefined if the interaction was not found).
-   * @api
-   */
-  removeInteraction(interaction) {
-    return this.getInteractions().remove(interaction);
-  }
-
-  /**
    * Removes the given layer from the map.
    * @param {import("./layer/Base.js").default} layer Layer.
    * @return {import("./layer/Base.js").default|undefined} The removed layer (or undefined if the
@@ -1425,17 +1224,6 @@ class Map extends BaseObject {
   }
 
   /**
-   * Remove the given overlay from the map.
-   * @param {import("./Overlay.js").default} overlay Overlay.
-   * @return {import("./Overlay.js").default|undefined} The removed overlay (or undefined
-   *     if the overlay was not found).
-   * @api
-   */
-  removeOverlay(overlay) {
-    return this.getOverlays().remove(overlay);
-  }
-
-  /**
    * @param {number} time Time.
    * @private
    */
@@ -1445,6 +1233,7 @@ class Map extends BaseObject {
     const previousFrameState = this.frameState_;
     /** @type {?FrameState} */
     let frameState = null;
+
     if (size !== undefined && hasArea(size) && view && view.isDef()) {
       const viewHints = view.getHints(
         this.frameState_ ? this.frameState_.viewHints : undefined

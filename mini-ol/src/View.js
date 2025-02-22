@@ -36,7 +36,6 @@ import {
 } from './rotationconstraint.js';
 import {easeOut, inAndOut} from './easing.js';
 import {
-  getForViewAndSize,
   getHeight,
   getWidth,
 } from './extent.js';
@@ -871,10 +870,12 @@ class View extends BaseObject {
    * @param {import("./coordinate.js").Coordinate} anchor Zoom anchor.
    * @return {import("./coordinate.js").Coordinate|undefined} Center for resolution and anchor.
    */
+  // wdp ? 决定以鼠标位置缩放为原点？
   calculateCenterZoom(resolution, anchor) {
     let center;
     const currentCenter = this.getCenterInternal();
     const currentResolution = this.getResolution();
+    // 以3857为例，resolution 表示每像素多少米
     if (currentCenter !== undefined && currentResolution !== undefined) {
       const x =
         anchor[0] -
@@ -971,39 +972,6 @@ class View extends BaseObject {
     return this.hints_.slice();
   }
 
-  /**
-   * Calculate the extent for the current view state and the passed size.
-   * The size is the pixel dimensions of the box into which the calculated extent
-   * should fit. In most cases you want to get the extent of the entire map,
-   * that is `map.getSize()`.
-   * @param {import("./size.js").Size} [size] Box pixel size. If not provided, the size
-   * of the map that uses this view will be used.
-   * @return {import("./extent.js").Extent} Extent.
-   * @api
-   */
-  calculateExtent(size) {
-    const extent = this.calculateExtentInternal(size);
-    return toUserExtent(extent, this.getProjection());
-  }
-
-  /**
-   * @param {import("./size.js").Size} [size] Box pixel size. If not provided,
-   * the map's last known viewport size will be used.
-   * @return {import("./extent.js").Extent} Extent.
-   */
-  calculateExtentInternal(size) {
-    size = size || this.getViewportSizeMinusPadding_();
-    const center = /** @type {!import("./coordinate.js").Coordinate} */ (
-      this.getCenterInternal()
-    );
-    assert(center, 1); // The view center is not defined
-    const resolution = /** @type {!number} */ (this.getResolution());
-    assert(resolution !== undefined, 2); // The view resolution is not defined
-    const rotation = /** @type {!number} */ (this.getRotation());
-    assert(rotation !== undefined, 3); // The view rotation is not defined
-
-    return getForViewAndSize(center, resolution, rotation, size);
-  }
 
   /**
    * Get the maximum resolution of the view.
@@ -1289,6 +1257,7 @@ class View extends BaseObject {
       if (this.resolutions_.length <= 1) {
         return 0;
       }
+      // wdp 为啥是 -2
       const baseLevel = clamp(
         Math.floor(zoom),
         0,

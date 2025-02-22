@@ -516,7 +516,7 @@ export function getEnlargedArea(extent1, extent2) {
   const maxY = Math.max(extent1[3], extent2[3]);
   return (maxX - minX) * (maxY - minY);
 }
-
+// wdp 什么意思 ？
 /**
  * @param {import("./coordinate.js").Coordinate} center Center.
  * @param {number} resolution Resolution.
@@ -548,6 +548,7 @@ export function getForViewAndSize(center, resolution, rotation, size, dest) {
  * @param {import("./size.js").Size} size Size.
  * @return {Array<number>} Linear ring representing the viewport.
  */
+// wdp 啥意思？
 export function getRotatedViewport(center, resolution, rotation, size) {
   const dx = (resolution * size[0]) / 2;
   const dy = (resolution * size[1]) / 2;
