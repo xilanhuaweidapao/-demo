@@ -1,0 +1,37 @@
+{
+    "compilerOptions": {
+        "module": "ES2022",
+        "moduleResolution": "Node",
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "strict": true,
+        "declaration": true,
+        "outDir": "../lib/mjs",
+        "sourceMap": true,
+        "target": "ES2023",
+        "typeRoots": [ "./src/ts/types", "./node_modules/@types"],
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "isolatedModules": true,
+        "verbatimModuleSyntax": true
+
+    },
+    "include": [
+        "../src/ts"
+    ],
+    "exclude": [
+        "../node_modules",
+        "../**/*.spec.ts"
+    ],
+    "typedocOptions": {
+        "out": "dist/doc",
+        "tsconfig": "config/tsconfig.json",
+        "exclude": [
+            "**/*.spec.ts"
+        ],
+        "inputFiles": "src/ts/flatgeobuf.ts",
+        "readme": "none"
+    }
+}

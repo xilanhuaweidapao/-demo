@@ -29,7 +29,7 @@ function quickSelect(arr, start, end, k) {
             if (curVal <= point) {
                 swap(arr, leftIndex++, start + i);
             }
-        }
+        }                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 
         swap(arr, leftIndex, p);
 
